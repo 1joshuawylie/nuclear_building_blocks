@@ -114,14 +114,19 @@ built_nucleus_images = dbc.Card(
 
 app.title = 'Interactive Nuclear Chart'
 
-app.layout = html.Div([
-    dbc.Card(
-        [
-            html.H1('Welcome to the Interactive Nuclear Chart!'),
-            html.Hr(),
-            html.P('If you haven\'t already played our game, check it out here!')
-        ]
-    ),
+header = html.Div(
+    [
+        dbc.Card(
+            [
+                html.H1('Welcome to the Interactive Nuclear Chart!'),
+                html.Hr(),
+                html.P('If you haven\'t already played our game, check it out here!')
+            ]
+        ),
+    ]
+)
+
+primaryTab = html.Div([
     dbc.Card([
         dbc.Row([
             # dbc.Col([
@@ -150,6 +155,27 @@ app.layout = html.Div([
             ], width=6),
         ], align='center'),      
     ])
+])
+
+
+submissionsTab = html.Div(
+    [
+        html.H1('Did you discover a new nucleus?'),
+        html.Hr(),
+        html.P('Click here to document your discovery and start the peer review process!')
+    ]
+)
+
+
+
+app.layout = html.Div([
+    header,
+    dbc.Tabs(
+        [
+            dbc.Tab(primaryTab, label='Interactive Chart'),
+            dbc.Tab(submissionsTab, label='Discovery Submissions')
+        ]
+    )
 ])
 
 
