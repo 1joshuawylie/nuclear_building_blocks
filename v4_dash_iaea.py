@@ -35,7 +35,7 @@ app = Dash(__name__,external_stylesheets=[dbc.themes.SLATE])
 
 
 ########## View type / Chart Manipulation and Nuclear Chart Block ##########
-chart_options = dbc.Card(
+chart_options = dbc.Offcanvas(
     [
         #### Options and View Type ####
         dbc.Card(
@@ -74,7 +74,10 @@ chart_options = dbc.Card(
                 ##### Extra Clickable Options #####
             ],
         )
-    ]
+    ],
+    id='offcanvas',
+    is_open=False,
+    title='Nuclear Chart Options'
 )
 chart_plot = dbc.Card(
     [
@@ -91,8 +94,8 @@ level_scheme = dbc.Card(
         dbc.Label(id='display_level_nucleus_name'),
         ########## Level Scheme and Built Nuclei Images Block ###########
         dcc.Graph(
-            id='level_scheme'
-        )
+            id='level_scheme',style={'height':'50vh'}
+        ),
     ]
 )
 ############ Level Scheme / Images of User "Discovered" Nuclei #############
@@ -100,38 +103,53 @@ built_nucleus_images = dbc.Card(
     [
         dbc.Label(id='display_built_nucleus_name'),
         ########## Level Scheme and Built Nuclei Images Block ###########
-        dbc.Card(
+        dcc.Loading(id='loading_level_scheme',
+                    type='cube',
+                    children=[dbc.Card(
             id='block_built_nucleus'
-        )
+        ),])
     ]
 )
 
 
 app.title = 'Interactive Nuclear Chart'
 
-# Begin describing the layout of the figure from top down...
 app.layout = html.Div([
     dbc.Card(
-        dbc.CardBody([
-            dbc.Row([
-                dbc.Col([
-                    chart_options
-                ], width=3),
-                dbc.Col([
-                    chart_plot
-                ], width=9),
-            ], align='center'), 
-            html.Br(),
-            dbc.Row([
-                dbc.Col([
-                    level_scheme
-                ], width=6),
-                dbc.Col([
-                    built_nucleus_images
-                ], width=6),
-            ], align='center'),      
-        ]), color = 'dark'
-    )
+        [
+            html.H1('Welcome to the Interactive Nuclear Chart!'),
+            html.Hr(),
+            html.P('If you haven\'t already played our game, check it out here!')
+        ]
+    ),
+    dbc.Card([
+        dbc.Row([
+            # dbc.Col([
+            #     chart_options
+            # ], width=3),
+            # dbc.Col([
+            dbc.Card([
+                html.Div(
+                    [
+                        dbc.Button('Open Nuclear Chart Options',id='open_chart_offcanvas',n_clicks=0),
+                        chart_options,
+                    ]
+                ),
+                chart_plot
+            ])
+                # chart_plot
+            # ], width=9),
+        ], align='center'), 
+        html.Br(),
+        dbc.Row([
+            dbc.Col([
+                level_scheme
+            ], width=6),
+            dbc.Col([
+                built_nucleus_images
+            ], width=6),
+        ], align='center'),      
+    ])
 ])
 
 
@@ -142,7 +160,7 @@ def plot_separation_energy(fig_,s_,nucType,nucColor):
         s_ = float(s_) * 10**-3 # Convert to MeV
         full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
         xAxisRange = full_fig.layout.xaxis.range
-        print(xAxisRange)
+        # print(xAxisRange)
         fig_.add_trace(go.Scatter(
             x=xAxisRange, y=[float(s_),float(s_)],
             mode='lines',
@@ -151,14 +169,20 @@ def plot_separation_energy(fig_,s_,nucType,nucColor):
             line=dict(color=nucColor,dash='dash')
         ))
     except:
-        print('printing exception')
+        # print('printing exception')
+        full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
+        xAxisRange = full_fig.layout.xaxis.range
+        yAxisRange = full_fig.layout.yaxis.range
+        yDiff = (max(yAxisRange)-min(yAxisRange))/100
         fig_.add_annotation(
-            xref="paper",
-            yref="paper",
+            # xref="paper",
+            # yref="paper",
             showarrow=False,
-            xanchor='left',
-            x=0.01,
-            y=0.95,
+            # xanchor='left',
+            # x=0.01,
+            # y=0.95,
+            yanchor="bottom",y=max(yAxisRange)-yDiff,
+            xanchor="right",x=max(xAxisRange),
             text=f'No {nucType} Separation Energy Found'
         )
     return None
@@ -170,7 +194,7 @@ def show_built_nucleus(headerText,imageLoc):
     # ])
     # return builtNucleusPicture
     builtNucleusHeader = html.Td(headerText)
-    builtNucleusPicture = html.Img(src=imageLoc)#,style={'height':'30vh'})
+    builtNucleusPicture = html.Img(src=imageLoc,style={'height':'50vh'})
     return builtNucleusHeader, builtNucleusPicture
 
 def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
@@ -235,11 +259,21 @@ def plot_level_scheme():
 
     # Plot Separation energies
     isotope = ground_state[(ground_state['n']==n)&(ground_state['z']==z)].copy()
+
+    full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
+    xAxisRange = full_fig.layout.xaxis.range
+    yAxisRange = full_fig.layout.yaxis.range
+    fig_.update_xaxes(range=[min(xAxisRange)-0.25,max(xAxisRange)+0.25])
+    fig_.update_yaxes(range=[min(yAxisRange)-0.1,max(yAxisRange)+0.1])
+
     sn = isotope['sn'].values[0] # Still in string format! Handle with function below...
     sp = isotope['sp'].values[0] # Still in string format! Handle with function below...
     plot_separation_energy(fig_,sn,'Neutron','blue')
     plot_separation_energy(fig_,sp,'Proton','red')
     fig_.update_legends()
+    fig_.update_layout(legend=dict(orientation='h',
+                                   yanchor="bottom",y=1.02,
+                                   xanchor="right",x=1))
     fig_.update_xaxes(title_text='State',
                       ticktext=list(position_to_name.values()),
                       tickvals=list(position_to_name.keys()))
@@ -247,7 +281,20 @@ def plot_level_scheme():
     return fig_, headerText_
 
 
+
+
+
 # Now set any necessary callbacks corresponding to the ids given in the layout section
+@app.callback(
+    Output("offcanvas", "is_open"),
+    Input("open_chart_offcanvas", "n_clicks"),
+    [State("offcanvas", "is_open")],
+)
+def toggle_offcanvas(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
+
 @callback(
     Output('nuclear_chart','figure'),
     Input('chart_type','value'),
@@ -287,7 +334,7 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider):
         for i, row in notAvailableNuclei.iterrows():
             constructedMap[row['z'],row['n']] = 35 # Set to large log number to be effectively unknown
             dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = 'Data not available'
+            dataDecay[row['z']][row['n']] = 'Not Available'
 
         # Recreate the map
         # constructedMap = np.ones((len(rows),len(cols))) * np.nan
@@ -314,9 +361,9 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider):
         # chart.add_traces([stableMap])
     # ADD IF STATEMENTS FOR OTHER CHART TYPES HERE AND BE SURE TO INCLUDE IT IN THE DROPDOWN MENU IN THE LAYOUT ABOVE
     # elif chart_type_name == 'Main Decay Mode':
+    chart.update_layout(yaxis_scaleanchor='x') # Fix aspect ratio
     chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange)
     chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True)
-    chart.update_layout(yaxis_scaleanchor='x') # Fix aspect ratio
     chart.update_traces(customdata=np.dstack((dataNames,dataDecay)),
                         hovertemplate='%{customdata[0]}<br>' + # Uses data from dataNames argument above
                         '%{x} Neutrons<br>' + # Uses data from dataNeutr argument above
