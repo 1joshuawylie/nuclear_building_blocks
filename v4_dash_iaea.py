@@ -26,6 +26,24 @@ isotopeLevels = None # Initialize a global variable to cut down on the number of
 def normalCol(dfCol):
     # Normalizes a give dataframe column
     return (dfCol - dfCol.min()) / (dfCol.max() - dfCol.min())
+
+def oxfordComma(_s):
+    # Thanks stackoverflow!: https://stackoverflow.com/questions/53981845/grammatically-correct-human-readable-string-from-list-with-oxford-comma
+    if len(_s) < 3:
+        return ' and '.join(map(str, _s))
+    *a, b = _s
+    return f"{', '.join(map(str, a))}, and {b}"
+
+
+def collaboratorNames(string_):
+    # Assumes string is the file name of the nucleus
+    names = string_.split('-')[-1] # According to naming convention {A}{sym}_{exc}-{name1};{name2}.png, names is the last part split
+    names = names.split('.')[0] # Eliminate the file type suffix
+    names = names.replace('_',' ')
+    listNames = names.split(';')
+
+    return oxfordComma(listNames)
+
 decayColor = {'B-':'skyblue','Stable':'black','N':'royalblue','2N':'blue','P':'deeppink','A':'yellow',
               'EC':'palevioletred','2P':'red','B+':'pink','2B-':'darkviolet','SF':'lime','Not Available':'grey'}
 
@@ -57,19 +75,21 @@ chart_options = dbc.Offcanvas(
                     ground_state['z'].max(),
                     step=None,
                     id='proton_axis_slider',
-                    value=ground_state['z'].max()
+                    # value=ground_state['z'].max()
+                    value=21
                 )
             ]),
         dbc.Card(
             [
                 ##### Neutron Slider #####
-                dbc.Label('Show Proton Range:'),
+                dbc.Label('Show Neutron Range:'),
                 dcc.Slider(
                     ground_state['n'].min(),
                     ground_state['n'].max(),
                     step=None,
                     id='neutron_axis_slider',
-                    value=ground_state['n'].max()
+                    # value=ground_state['n'].max()
+                    value=28
                 ),
                 ##### Extra Clickable Options #####
             ],
@@ -83,7 +103,7 @@ chart_plot = dbc.Card(
     [
         ########### Nuclear Chart ###########
         dcc.Graph(
-            id='nuclear_chart',style={'height':'50vh'}
+            id='nuclear_chart',style={'height':'80vh'}
         )
     ]
 )
@@ -91,10 +111,10 @@ chart_plot = dbc.Card(
 ############ Level Scheme #############
 level_scheme = dbc.Card(
     [
-        dbc.Label(id='display_level_nucleus_name'),
+        # dbc.Label(id='display_level_nucleus_name'),
         ########## Level Scheme and Built Nuclei Images Block ###########
         dcc.Graph(
-            id='level_scheme',style={'height':'50vh'}
+            id='level_scheme',style={'height':'45vh'}
         ),
     ]
 )
@@ -126,34 +146,72 @@ header = html.Div(
     ]
 )
 
+tips = html.Div(
+    [
+        html.H4('Tips:',className='card-title'),
+        dbc.ListGroup(
+            [
+                dbc.ListGroupItem(
+                    'The chart starts with the maximum view setting of 20 protons and 28 neutrons.'+
+                    ' Be sure to click the \"Nuclear Chart Options\" button to play around with the '+
+                    'chart type and number of protons and neutrons viewed.'
+                ),
+                dbc.ListGroupItem(
+                    'All of the nuclei on the nuclear chart have been acually observed by scientists!'+
+                    ' That being said, we need your help to build (\"discover\") a block version of each one.'
+                ),
+                dbc.ListGroupItem(
+                    'Click on a specific nucleus to see its level scheme on the left panel below and a '+
+                    'picture of its ground state which was built by another user on the right below. It\'s '+
+                    'possible that no one has managed to build that state or submitted their \"discovery\", '+
+                    'so if that\'s the case consider submitting your own construction!'
+                )
+            ],
+            numbered=True
+        ),
+        html.Br(),
+        html.Div(
+            [
+                dbc.Button('Open Nuclear Chart Options',id='open_chart_offcanvas',n_clicks=0),
+                chart_options,
+            ]
+        ),
+    ]
+)
+
 primaryTab = html.Div([
     dbc.Card([
         dbc.Row([
-            # dbc.Col([
-            #     chart_options
-            # ], width=3),
-            # dbc.Col([
             dbc.Card([
-                html.Div(
+                dbc.Row(
                     [
-                        dbc.Button('Open Nuclear Chart Options',id='open_chart_offcanvas',n_clicks=0),
-                        chart_options,
+                        dbc.Col(
+                            [
+                                tips
+                            ], width=3
+                        ),
+                        dbc.Col(
+                            [
+                                chart_plot
+                            ], width=6
+                        ),
+                        dbc.Col([
+                            level_scheme,
+                            built_nucleus_images
+                        ], width=3),
                     ]
-                ),
-                chart_plot
+                )
             ])
-                # chart_plot
-            # ], width=9),
         ], align='center'), 
-        html.Br(),
-        dbc.Row([
-            dbc.Col([
-                level_scheme
-            ], width=6),
-            dbc.Col([
-                built_nucleus_images
-            ], width=6),
-        ], align='center'),      
+        # html.Br(),
+        # dbc.Row([
+        #     # dbc.Col([
+        #     #     level_scheme
+        #     # ], width=6),
+        #     dbc.Col([
+        #         built_nucleus_images
+        #     ], width=6),
+        # ], align='center'),      
     ])
 ])
 
@@ -162,7 +220,30 @@ submissionsTab = html.Div(
     [
         html.H1('Did you discover a new nucleus?'),
         html.Hr(),
-        html.P('Click here to document your discovery and start the peer review process!')
+        dbc.Card(
+            [
+                dbc.Row([
+                    dbc.Col(
+                        [
+                            dbc.CardBody(
+                                [
+                                    html.Td([dcc.Link('Click here',href='https://forms.gle/wKGLPipALwGx9fuA6',target='_blank'),
+                                             ' or scan the QR code to document your discovery and start the peer review process!']),
+                                    html.Br(),
+                                    html.Td(['Note: Peer-Reviewing takes time and is usually done by volunteers. This may lead to ',
+                                             'a delay in the publication of your nuclear data.'])
+                                ]
+                            ),
+                        ],width=4
+                    ),
+                    dbc.Col(
+                        [
+                            dbc.CardImg(src='assets/form_qr_code.png'),
+                        ],width=4
+                    )
+                ])
+            ],
+        )
     ]
 )
 
@@ -192,7 +273,7 @@ def plot_separation_energy(fig_,s_,nucType,nucColor):
             mode='lines',
             hoverinfo='skip', # Don't provide any hover info or hover interaction from this line
             name=f'{nucType} Separation Energy',
-            line=dict(color=nucColor,dash='dash')
+            line=dict(color=nucColor,dash='dash'),
         ))
     except:
         # print('printing exception')
@@ -201,12 +282,7 @@ def plot_separation_energy(fig_,s_,nucType,nucColor):
         yAxisRange = full_fig.layout.yaxis.range
         yDiff = (max(yAxisRange)-min(yAxisRange))/100
         fig_.add_annotation(
-            # xref="paper",
-            # yref="paper",
             showarrow=False,
-            # xanchor='left',
-            # x=0.01,
-            # y=0.95,
             yanchor="bottom",y=max(yAxisRange)-yDiff,
             xanchor="right",x=max(xAxisRange),
             text=f'No {nucType} Separation Energy Found'
@@ -214,13 +290,8 @@ def plot_separation_energy(fig_,s_,nucType,nucColor):
     return None
 
 def show_built_nucleus(headerText,imageLoc):
-    # builtNucleusPicture = html.Div(children=[
-    #     html.Td(headerText),
-    #     html.Img(src=imageLoc,style={'height':'50%'})
-    # ])
-    # return builtNucleusPicture
     builtNucleusHeader = html.Td(headerText)
-    builtNucleusPicture = html.Img(src=imageLoc,style={'height':'50vh'})
+    builtNucleusPicture = html.Img(src=imageLoc,style={'height':'45vh'})
     return builtNucleusHeader, builtNucleusPicture
 
 def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
@@ -306,7 +377,52 @@ def plot_level_scheme():
     fig_.update_yaxes(title_text='Energy (MeV)')
     return fig_, headerText_
 
+def drawMagicNumbers(fig_,xRange,yRange,xoffset,yoffset):
+    # Draw magic number boxes and images of tiles
+    magicNumbers = [2, 8, 20, 28, 50, 82, 126]
+    # store current values of magic numbers that fall within given range
+    neutronMagic = [m for m in magicNumbers if (m >= min(xRange)) and (m <= max(xRange))]
+    protonMagic = [m for m in magicNumbers if (m >= min(yRange)) and (m <= max(yRange))]
 
+    for nm in neutronMagic:
+        fig_.add_shape(type='rect',
+            x0=nm-0.5,x1=nm+0.5,y0=min(yRange)+yoffset,y1=max(yRange)+0.5,
+            opacity=0.5,layer='below',fillcolor='grey',line_width=0
+        )
+        if max(xRange) < 50:
+            fig_.add_layout_image(
+                dict(
+                    source=f'assets/shell_closure_{nm}.png',
+                    xref="x",
+                    yref="y",
+                    x=nm,
+                    y=min(yRange)+0.5,
+                )
+            )
+    for pm in protonMagic:
+        fig_.add_shape(type='rect',
+            x0=min(xRange)+xoffset,x1=max(xRange)+0.5,y0=pm-0.5,y1=pm+0.5,
+            opacity=0.5,layer='below',fillcolor='grey',line_width=0
+        )
+        if max(yRange) < 50:
+            fig_.add_layout_image(
+                dict(
+                    source=f'assets/shell_closure_{pm}.png',
+                    xref="x",
+                    yref="y",
+                    x=min(xRange),
+                    y=pm
+                )
+            )
+    
+    fig_.update_layout_images(dict(
+        # xref="paper",
+        # yref="paper",
+        sizex=1,
+        sizey=1,
+        xanchor="center",
+        yanchor="middle"
+    ))
 
 
 
@@ -329,19 +445,22 @@ def toggle_offcanvas(n1, is_open):
 )
 def update_chart_type(chart_type_name,neutron_slider,proton_slider):
     currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:].copy()
-    xrange = [min(currentData['n']), max(currentData['n'])]
-    yrange = [min(currentData['z']), max(currentData['z'])]
+    xoffset, yoffset = 2, 2.5
+    xrange = [min(currentData['n'])-xoffset, max(currentData['n'])]
+    yrange = [min(currentData['z'])-yoffset, max(currentData['z'])]
     chart = go.Figure()
 
     if chart_type_name == 'Half Life':
+        # Update colorbar in the following list
         custom_colors = [
-            [0.0, 'rgb(0, 0, 255)'],  # Blue at 0.0
-            [0.4, 'rgb(0, 255, 0)'],  # Green at 0.2
-            [0.5, 'rgb(255, 255, 0)'],  # Yellow at 0.4
-            [0.6, 'rgb(255, 165, 0)'],  # Orange at 0.6
-            [0.8, 'rgb(255, 0, 0)'],  # Red at 0.8
-            [0.95, 'rgb(0, 0, 0)'],  # Black at 0.999
-            [1.0, 'rgb(200, 200, 200)'],  # Grey at 0.0
+            [0.0, 'rgb(143, 0, 255)'],  # Violet zeptosecond
+            [0.05, 'rgb(0, 0, 255)'],  # Blue attosecond
+            [0.267, 'rgb(0, 255, 0)'],  # Green microsecond
+            [0.375, 'rgb(255, 255, 0)'],  # Yellow megasecond (12 days)
+            [0.536, 'rgb(255, 165, 0)'],  # Orange
+            [0.75, 'rgb(255, 0, 0)'],  # Red
+            [0.95, 'rgb(0, 0, 0)'],  # Black
+            [1.0, 'rgb(200, 200, 200)'],  # Grey
         ]
 
         rows = currentData['z'].unique()
@@ -363,9 +482,7 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider):
             dataDecay[row['z']][row['n']] = 'Not Available'
 
         # Recreate the map
-        # constructedMap = np.ones((len(rows),len(cols))) * np.nan
         unstableNuclei = currentData[(currentData['half_life']!='STABLE')&(currentData['half_life']!=' ')]
-        unstableNuclei['normalized_log_half_life_sec'] = normalCol(unstableNuclei['log(half_life_sec)'])
         for i, row in unstableNuclei.iterrows():
             constructedMap[row['z'],row['n']] = row['log(half_life_sec)']
             dataNames[row['z']][row['n']] = row['A_symbol']
@@ -380,16 +497,17 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider):
             colorbar=dict(title='log<sub>10</sub>(T<sub>1/2</sub> (s))', # Update information on the colorbar
                         len=0.7,
                         tickvals=[-21,-9,0,9,21,31,35],
-                        ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)'])
+                        ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)']),
         )
 
-        chart.add_traces([unstableMap])#,stableMap])
-        # chart.add_traces([stableMap])
+        chart.add_traces([unstableMap])
+    
+    drawMagicNumbers(chart,xrange,yrange,xoffset, yoffset)
     # ADD IF STATEMENTS FOR OTHER CHART TYPES HERE AND BE SURE TO INCLUDE IT IN THE DROPDOWN MENU IN THE LAYOUT ABOVE
     # elif chart_type_name == 'Main Decay Mode':
-    chart.update_layout(yaxis_scaleanchor='x') # Fix aspect ratio
-    chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange)
-    chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True)
+    chart.update_layout(yaxis_scaleanchor='x',title=dict(text='Nuclear Chart: log(Half Life)')) # Fix aspect ratio
+    chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange,showgrid=False)
+    chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True,showgrid=False)
     chart.update_traces(customdata=np.dstack((dataNames,dataDecay)),
                         hovertemplate='%{customdata[0]}<br>' + # Uses data from dataNames argument above
                         '%{x} Neutrons<br>' + # Uses data from dataNeutr argument above
@@ -402,7 +520,7 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider):
 #### Level chart ####
 @callback(
     Output('level_scheme','figure'),
-    Output('display_level_nucleus_name','children'),
+    # Output('display_level_nucleus_name','children'),
     Output('display_built_nucleus_name','children'),
     Output('block_built_nucleus','children'),
     Input('nuclear_chart','clickData'),
@@ -430,7 +548,6 @@ def update_level_scheme(clickData, hoverData):
         isotopeLevels = iaea.NuChartLevels(A,symbol)
     
     # Plotting level scheme
-    # levels = go.Figure()
     imagePath = 'assets/'
     if triggerID is None:
         levels = go.Figure()
@@ -448,43 +565,58 @@ def update_level_scheme(clickData, hoverData):
         text = ['Please select a nucleus to see a block version of it: ']
         image = imagePath + 'logo.png'
         builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,image)
-        # builtNucleusHeader, builtNucleusPicture = html.Div(children=[
-        #     html.Td(['Please select a nucleus to see a block version of it: ']),
-        #     html.Img(src=imagePath + 'bing_image_creator_atomic_nucleus.jpg')
-        # ])
+        levels.update_layout(title=dict(text=f'Please select a nucleus:')) # Title
     elif triggerID == 'nuclear_chart':
         levels, headerText = plot_level_scheme()
 
+        # Get list of files in directory
+        picturePath = 'assets/Approved_Pictures'
+        directoryFiles = [f for f in os.listdir(picturePath) if os.path.isfile(os.path.join(picturePath,f))]
+        # Get ground state file name given path, A, and symbol
+        pictureFile = [f for f in directoryFiles if (str(A) + symbol + '_0') in f]
         # For showing picture of built nucleus
-        pictureFile = imagePath + str(A) + symbol + '_0.png'
-        if not os.path.isfile(pictureFile):
-            text = ['Hey, it looks like no one has discovered this state yet!\nUpload a picture of your\'s by following this code...']
-            image = imagePath + 'bing_image_creator_halo_prompt.jpg'
+        if not pictureFile: # If picture file list is empty
+            text = ['Hey, it looks like no one has discovered this state yet! Did you make this state?']#,html.Br(),
+                    # 'Upload a picture of your nuclear discovery by clikcing on the \"Discovery Submissions\" tab above.']
+            image = imagePath + 'nuclear_discovery_logo.png'
             builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,image)
         else:
-            text = ['You\'re currently looking at the ground state of: ',
-                    html.Sup(str(A)), symbol]
-            builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,pictureFile)
+            discovererNames = collaboratorNames(pictureFile[0])
+            text = ['You\'re currently looking at the excited  of: ',
+                    html.Sup(str(A)), symbol, html.Br(),
+                    'Discovered by: ',discovererNames]
+            builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,os.path.join(picturePath,pictureFile[0]))
+        
+        levels.update_layout(title=dict(text=f'Level Scheme for <sup>{A}</sup>{symbol}')) # Title
 
     elif triggerID == 'level_scheme':
         levels, headerText = plot_level_scheme()
 
-        # print('dumpHover: ',dumpHover)
-        # print('Isotope levels: ',isotopeLevels.columns)
         A = isotopeLevels['n'].unique()[0] + isotopeLevels['z'].unique()[0]
         symbol = isotopeLevels['symbol'].unique()[0]
         excitation = dumpHover['points'][0]['pointIndex']
+        # Get list of files in directory
+        picturePath = 'assets/Approved_Pictures'
+        directoryFiles = [f for f in os.listdir(picturePath) if os.path.isfile(os.path.join(picturePath,f))]
+        # Get ground state file name given path, A, and symbol
+        pictureFile = [f for f in directoryFiles if (str(A) + symbol + f'_{int(excitation)}') in f]
         # For showing picture of built nucleus
-        pictureFile = imagePath + str(A) + symbol + f'_{excitation}' + '.png'
-        if not os.path.isfile(pictureFile):
-            text = ['Hey, it looks like no one has discovered this state yet!\nUpload a picture of your\'s by following this code...']
-            image = imagePath + 'bing_image_creator_halo_prompt.jpg'
+        if not pictureFile:
+            text = ['Hey, it looks like no one has discovered this state yet! Did you make this state?']#,html.Br(),
+                    # 'Upload a picture of your nuclear discovery by clikcing on the \"Discovery Submissions\" tab above.']
+            image = imagePath + 'nuclear_discovery_logo.png'
             builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,image)
         else:
+            discovererNames = collaboratorNames(pictureFile[0])
             text = ['You\'re currently looking at the excited  of: ',
-                    html.Sup(str(A)), symbol]
-            builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,pictureFile)
-    return levels, headerText, builtNucleusHeader, builtNucleusPicture
+                    html.Sup(str(A)), symbol, html.Br(),
+                    'Discovered by: ',discovererNames]
+            builtNucleusHeader, builtNucleusPicture = show_built_nucleus(text,os.path.join(picturePath,pictureFile[0]))
+        
+        levels.update_layout(title=dict(text=f'Level Scheme for <sup>{A}</sup>{symbol}')) # Title
+    
+    # return levels, headerText, builtNucleusHeader, builtNucleusPicture
+    return levels, builtNucleusHeader, builtNucleusPicture
 
 
 
