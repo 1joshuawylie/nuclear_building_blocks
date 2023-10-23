@@ -313,13 +313,14 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
     chart = go.Figure()
 
     if chart_type_name == 'Half Life':
+        ncdt.show_user_made_nuclei(chart,currentData)
         chart_type, dataNames, dataDecay = ncdt.half_life_plot(currentData)
         chart.add_traces([chart_type])
+        
     elif chart_type_name == 'Binding Energy Per Nucleon':
+        ncdt.show_user_made_nuclei(chart,currentData)
         chart_type, dataNames, dataDecay = ncdt.binding_energy_per_nucleon_plot(currentData)
         chart.add_traces([chart_type])
-    
-    ncdt.show_user_made_nuclei(ground_state)
 
     ncdt.drawMagicNumbers(chart,xrange,yrange,xoffset, yoffset)
     chart.update_layout(yaxis_scaleanchor='x',title=dict(text='Nuclear Chart: log(Half Life)')) # Fix aspect ratio

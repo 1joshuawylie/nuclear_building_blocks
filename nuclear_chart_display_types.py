@@ -11,6 +11,54 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+stableVal = 31
+unknownVal = 35
+# Update colorbar in the following list
+custom_half_life_colors = [
+    [0.0, 'rgb(143, 0, 255)'],  # Violet zeptosecond
+    [0.05, 'rgb(0, 0, 255)'],  # Blue attosecond
+    [0.267, 'rgb(0, 255, 0)'],  # Green microsecond
+    [0.375, 'rgb(255, 255, 0)'],  # Yellow megasecond (12 days)
+    [0.536, 'rgb(255, 165, 0)'],  # Orange
+    [0.75, 'rgb(255, 0, 0)'],  # Red
+    [0.95, 'rgb(0, 0, 0)'],  # Black
+    [1.0, 'rgb(200, 200, 200)'],  # Grey
+]
+
+custom_contrast_half_life_colors = [
+    [0.0, 'rgb(255, 0, 0)'],  # Violet zeptosecond
+    [0.95, 'rgb(0, 0, 255)'],  # Black
+    [1.0, 'rgb(255, 255, 255)'],  # Grey
+]
+
+# Update colorbar in the following list
+custom_binding_energy_per_nucleon_colors = [
+    [0.0, 'rgb(200, 200, 200)'],  # Grey Not available
+    [0.001, 'rgb(0, 0, 255)'],  # Blue at 0.0
+    [0.3, 'rgb(0, 255, 0)'],  # Green at 0.2
+    [0.6, 'rgb(255, 255, 0)'],  # Yellow at 0.4
+    [0.8, 'rgb(255, 165, 0)'],  # Orange at 0.6
+    [0.9, 'rgb(255, 0, 0)'],  # Red at 0.8
+    [1.0, 'rgb(128, 0, 128)'],  # Purple at 1.0
+]
+
+custom_contrast_binding_energy_per_nucleon_colors = [
+    [0.0, 'rgb(55, 55, 55)'],  # Grey Not available
+    [0.001, 'rgb(255, 255, 0)'],  # Blue at 0.0
+    [0.3, 'rgb(255, 0, 255)'],  # Green at 0.2
+    [0.6, 'rgb(0, 0, 255)'],  # Yellow at 0.4
+    [0.8, 'rgb(0, 90, 255)'],  # Orange at 0.6
+    [0.9, 'rgb(0, 255, 255)'],  # Red at 0.8
+    [1.0, 'rgb(127, 255, 127)'],  # Purple at 1.0
+]
+
 def half_life_plot(data_):
     '''
     Given a pandas DataFrame with the assumed columns:
@@ -22,18 +70,6 @@ def half_life_plot(data_):
                            (e.g. \beta^-, \beta^+, proton, neutron, and alpha)
      - log(half_life_sec): Log of a nucleus' half life in seconds
     '''
-    # Update colorbar in the following list
-    custom_colors = [
-        [0.0, 'rgb(143, 0, 255)'],  # Violet zeptosecond
-        [0.05, 'rgb(0, 0, 255)'],  # Blue attosecond
-        [0.267, 'rgb(0, 255, 0)'],  # Green microsecond
-        [0.375, 'rgb(255, 255, 0)'],  # Yellow megasecond (12 days)
-        [0.536, 'rgb(255, 165, 0)'],  # Orange
-        [0.75, 'rgb(255, 0, 0)'],  # Red
-        [0.95, 'rgb(0, 0, 0)'],  # Black
-        [1.0, 'rgb(200, 200, 200)'],  # Grey
-    ]
-
     rows = data_['z'].unique()
     cols = data_['n'].unique()
 
@@ -45,7 +81,7 @@ def half_life_plot(data_):
     # Populate Heatmap grid with information for stable nuclei first
     stableNuclei = data_[data_['half_life']=='STABLE'].copy()
     for i, row in stableNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = 31 # Set to large log number to be effectively Stable
+        constructedMap[row['z'],row['n']] = stableVal # Set to large log number to be effectively Stable
         dataNames[row['z']][row['n']] = row['A_symbol']
         dataDecay[row['z']][row['n']] = row['common_decays']
     
@@ -53,7 +89,7 @@ def half_life_plot(data_):
     # notAvailableNuclei = data_[data_['half_life']==' '].copy() # Old version of IAEA data, was changed to NaN
     notAvailableNuclei = data_[data_['half_life'].isna()].copy()
     for i, row in notAvailableNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = 35 # Set to large log number to be effectively unknown
+        constructedMap[row['z'],row['n']] = unknownVal # Set to large log number to be effectively unknown
         dataNames[row['z']][row['n']] = row['A_symbol']
         if isinstance(row['common_decays'], float): # For nan types
             dataDecay[row['z']][row['n']] = 'Not Available'
@@ -71,7 +107,7 @@ def half_life_plot(data_):
     # Construct plotly heatmap
     chartMap = go.Heatmap(
         z=constructedMap.tolist(),
-        colorscale=custom_colors,
+        colorscale=custom_half_life_colors,
         name='',
         xgap=0.5, # Provide slight gap between each heatmap box
         ygap=0.5, # Provide slight gap between each heatmap box
@@ -94,17 +130,6 @@ def binding_energy_per_nucleon_plot(data_):
                            (e.g. \beta^-, \beta^+, proton, neutron, and alpha)
      - log(half_life_sec): Log of a nucleus' half life in seconds
     '''
-    # Update colorbar in the following list
-    custom_colors = [
-        [0.0, 'rgb(200, 200, 200)'],  # Grey Not available
-        [0.001, 'rgb(0, 0, 255)'],  # Blue at 0.0
-        [0.3, 'rgb(0, 255, 0)'],  # Green at 0.2
-        [0.6, 'rgb(255, 255, 0)'],  # Yellow at 0.4
-        [0.8, 'rgb(255, 165, 0)'],  # Orange at 0.6
-        [0.9, 'rgb(255, 0, 0)'],  # Red at 0.8
-        [1.0, 'rgb(128, 0, 128)'],  # Purple at 1.0
-    ]
-
     rows = data_['z'].unique()
     cols = data_['n'].unique()
 
@@ -147,7 +172,7 @@ def binding_energy_per_nucleon_plot(data_):
     # Construct plotly heatmap
     chartMap = go.Heatmap(
         z=constructedMap.tolist(),
-        colorscale=custom_colors,
+        colorscale=custom_binding_energy_per_nucleon_colors,
         name='',
         xgap=0.5, # Provide slight gap between each heatmap box
         ygap=0.5, # Provide slight gap between each heatmap box
@@ -216,15 +241,35 @@ def separateSymAndA(string_):
             sym += i
     return [int(A), sym]
 
-def show_user_made_nuclei(groundStateData):
+def show_user_made_nuclei(fig_,chartData):
     # List all found image files in 'assets/Approved_Pictures'
     picturePath = 'assets/Approved_Pictures'
     listPictures = [f for f in os.listdir(picturePath) if os.path.isfile(os.path.join(picturePath,f))]
-    print(listPictures)
     # Split before the excitation number by keeping the first list element of a split('_') string
     listNuclei = [ln.split('_')[0] for ln in listPictures]
-    print(listNuclei)
     listASym = [separateSymAndA(s) for s in listNuclei]
-    print(listASym)
     uniqueASym = pd.DataFrame(listASym,columns=['A','symbol'])
-    # print(uniqueASym.unique())
+    noDuplicatesASym = uniqueASym.drop_duplicates(keep='first')
+
+    # Get z for uniqueASym which removed duplicate entries from ground state data
+    for i, row in noDuplicatesASym.iterrows():
+        rowGS = chartData[chartData['symbol']==row['symbol']]
+        # print(rowGS['z'].unique().size==0)
+        if rowGS['z'].unique().size==0:
+            print('continuing')
+            continue
+        
+        noDuplicatesASym.loc[i,'z'] = rowGS['z'].unique()
+    noDuplicatesASym['n'] = noDuplicatesASym['A'] - noDuplicatesASym['z']
+    
+    fig_.add_trace(go.Scatter(
+        x=noDuplicatesASym['n'],
+        y=noDuplicatesASym['z'],
+        mode='markers',
+        hoverinfo='skip',
+        showlegend=False,
+        marker=dict(
+            color='#00d4ff',
+            symbol='diamond'
+        )
+    ))
