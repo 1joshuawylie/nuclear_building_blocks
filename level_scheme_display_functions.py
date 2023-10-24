@@ -131,7 +131,7 @@ def plot_level_scheme(groundStateData,levelData):
     ))
 
     # Plot Separation energies
-    isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)].copy()
+    isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)]
 
     full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
     # Get current axes ranges

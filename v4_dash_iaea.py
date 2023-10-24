@@ -9,7 +9,7 @@ import iaea_data as iaea # importing iaea data
 import plotly.express as px
 import plotly.graph_objects as go
 import plotly.colors as pc
-from dash import Dash, dcc, html, Input, Output, State, callback
+from dash import Dash, dcc, html, Input, Output, State, callback, no_update
 from dash import ctx # Used for identifying callback_context
 import dash_daq as daq
 import dash_bootstrap_components as dbc
@@ -22,6 +22,7 @@ import level_scheme_display_functions as lsdf
 
 # Call ground state information
 ground_state = iaea.NuChartGS()
+currentData = None
 # Call specific level scheme
 isotopeLevels = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
 
@@ -71,8 +72,8 @@ chart_options = dbc.Offcanvas(
                 ##### View Type #####
                 dbc.Label('Please select your desired view:'),
                 dcc.Dropdown(
-                    ['Half Life', 'Binding Energy Per Nucleon'],
-                    'Half Life',
+                    ['Half Life', 'Binding Energy Per Nucleon', 'Year Discovered'],
+                    'Year Discovered',
                     id='chart_type'
                 )
             ]),
@@ -129,8 +130,10 @@ chart_plot = dbc.Card(
     [
         ########### Nuclear Chart ###########
         dcc.Graph(
-            id='nuclear_chart',style={'height':'80vh'}
-        )
+            id='nuclear_chart',style={'height':'80vh'},
+            clear_on_unhover=True
+        ),
+        dcc.Tooltip(id='chart_tooltip')
     ]
 )
 
@@ -306,7 +309,9 @@ def toggle_offcanvas(n1, is_open):
     Input('chart_toggle_options','value')
 )
 def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_options):
-    currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:].copy()
+    global currentData
+    currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:]
+    print('Current Data\n',currentData)
     xoffset, yoffset = 2, 2.5
     xrange = [min(currentData['n'])-xoffset, max(currentData['n'])]
     yrange = [min(currentData['z'])-yoffset, max(currentData['z'])]
@@ -316,22 +321,36 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
         ncdt.show_user_made_nuclei(chart,currentData)
         chart_type, dataNames, dataDecay = ncdt.half_life_plot(currentData)
         chart.add_traces([chart_type])
+        chart.update_layout(title=dict(text='Nuclear Chart: log(Half Life)'))
         
     elif chart_type_name == 'Binding Energy Per Nucleon':
         ncdt.show_user_made_nuclei(chart,currentData)
         chart_type, dataNames, dataDecay = ncdt.binding_energy_per_nucleon_plot(currentData)
         chart.add_traces([chart_type])
+        chart.update_layout(title=dict(text='Nuclear Chart: Binding Energy Per Nucleon'))
+    
+    elif chart_type_name == 'Year Discovered':
+        ncdt.show_user_made_nuclei(chart,currentData)
+        chart_type, dataNames, dataDecay = ncdt.year_discovered_plot(currentData)
+        chart.add_traces([chart_type])
+        chart.update_layout(title=dict(text='Nuclear Chart: Year Discovered'))
 
     ncdt.drawMagicNumbers(chart,xrange,yrange,xoffset, yoffset)
-    chart.update_layout(yaxis_scaleanchor='x',title=dict(text='Nuclear Chart: log(Half Life)')) # Fix aspect ratio
+    chart.update_layout(yaxis_scaleanchor='x') # Fix aspect ratio
     chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange,showgrid=False)
     chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True,showgrid=False)
+    
+    # Trace info allows showing default Plotly hover info. uncomment if you'd like default. otherwise see "display_hover" function
+    '''
     chart.update_traces(customdata=np.dstack((dataNames,dataDecay)),
                         hovertemplate='%{customdata[0]}<br>' + # Uses data from dataNames argument above
                         '%{x} Neutrons<br>' + # Uses data from dataNeutr argument above
                         '%{y} Protons<br>' + # Uses data from dataProto argument above
                         '%{customdata[1]} Decay Mode<br>', # Uses data from dataProto argument above
                 ) # For click data info
+    Try more interactive plotly hover info
+    '''
+    chart.update_traces(hoverinfo='none',hovertemplate=None)
     
     # Toggle Options
     if 1 in toggle_options:
@@ -347,6 +366,67 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
             showlegend=False
         ))
     return chart
+
+# Prettier hover info stuff for nuclear chart
+@callback(
+    Output("chart_tooltip", "show"),
+    Output("chart_tooltip", "bbox"),
+    Output("chart_tooltip", "children"),
+    Input("nuclear_chart", "hoverData"),
+)
+def display_hover(hoverData):
+    global currentData
+    if hoverData is None:
+        return False, no_update, no_update
+
+    # demo only shows the first point, but other points may also be available
+    pt = hoverData["points"][0]
+    bbox = pt["bbox"]
+
+    df_row = currentData[(currentData['n']==pt['x'])&(currentData['z']==pt['y'])]
+    # For no data, Return nothing
+    if df_row.empty:
+        return False, no_update, no_update
+    
+    decayImgSrc = {
+        'B-':'assets/decay_modes/beta-.png',
+        'B+':'assets/decay_modes/beta+.png',
+        'EC':'assets/decay_modes/EC.png',
+        'N':'assets/decay_modes/N.png',
+        'P':'assets/decay_modes/P.png',
+        '2N':'assets/decay_modes/2N.png',
+        '2P':'assets/decay_modes/2P.png',
+        'A':'assets/decay_modes/A.png',
+        'nan':'assets/decay_modes/unknown.png',
+        'Stable':'assets/decay_modes/stable.png',
+    }
+    decayLatex = {
+        'B-':['Decays by: \u03B2',html.Sup('-'),' Decay'],
+        'B+':['Decays by: \u03B2',html.Sup('+'),' Decay'],
+        'EC':'Decays by: Electron Capture',
+        'N':'Decays by: Neutron Emission',
+        'P':'Decays by: Proton Emission',
+        '2N':'Decays by: 2 Neutron Emission',
+        '2P':'Decays by: 2 Proton Emission',
+        'A':['Decays by: \u03B1 Decay'],
+        'nan':'Unknown Decay Mode',
+        'Stable':'Stable'
+    }
+    img_src = decayImgSrc[str(df_row['common_decays'].values[0])]
+    A =  int(df_row['n'].values[0])+int(df_row['z'].values[0])
+    symbol = df_row['symbol'].values[0]
+    text = [html.Sup(str(A)), symbol]
+
+    children = [
+        html.Div([
+            html.H1(text),
+            html.P(decayLatex[str(df_row['common_decays'].values[0])]),
+            html.Img(src=img_src, style={"width": "100%"}),
+            html.P(['Images are a general depiction of the decay process.'],style={'font-size':'12px'}),
+        ], style={'width': '200px', 'white-space': 'normal'})
+    ]
+
+    return True, bbox, children
 
 
 #### Level chart ####

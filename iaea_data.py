@@ -27,7 +27,7 @@ def NuChartGS():
     ground_state['A_symbol'] = ['<sup>'+str(row['n']+row['z'])+'</sup>'+row['symbol'] for index,row in ground_state.iterrows()]
 
     # Dictionary to rewrite more exotic decays with their initial decay step
-    decayOrder = {'EC+B+':'EC','B+P':'B+','B-N':'B-','B-2N':'B-','ECP+EC2P':'EC','2EC':'EC',
+    decayOrder = {'EC+B+':'EC','B+P':'B+','B-N':'B-','B-2N':'B-','B-A':'B-','ECP+EC2P':'EC','2EC':'EC',
                 'IT':'B-','ECP':'EC','2B+':'B+','ECSF':'SF',' ':'Not Available'} # Adjust to more common decays
 
     for i, row in ground_state.iterrows():

@@ -11,12 +11,17 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
+import ast # For converting string of a list to a list
+
 def is_number(s):
     try:
         float(s)
         return True
     except ValueError:
         return False
+
+# def parseListDict(listString):
+#     return ast.literal_eval(listString)
 
 stableVal = 31
 unknownVal = 35
@@ -32,12 +37,6 @@ custom_half_life_colors = [
     [1.0, 'rgb(200, 200, 200)'],  # Grey
 ]
 
-custom_contrast_half_life_colors = [
-    [0.0, 'rgb(255, 0, 0)'],  # Violet zeptosecond
-    [0.95, 'rgb(0, 0, 255)'],  # Black
-    [1.0, 'rgb(255, 255, 255)'],  # Grey
-]
-
 # Update colorbar in the following list
 custom_binding_energy_per_nucleon_colors = [
     [0.0, 'rgb(200, 200, 200)'],  # Grey Not available
@@ -49,15 +48,15 @@ custom_binding_energy_per_nucleon_colors = [
     [1.0, 'rgb(128, 0, 128)'],  # Purple at 1.0
 ]
 
-custom_contrast_binding_energy_per_nucleon_colors = [
-    [0.0, 'rgb(55, 55, 55)'],  # Grey Not available
-    [0.001, 'rgb(255, 255, 0)'],  # Blue at 0.0
-    [0.3, 'rgb(255, 0, 255)'],  # Green at 0.2
-    [0.6, 'rgb(0, 0, 255)'],  # Yellow at 0.4
-    [0.8, 'rgb(0, 90, 255)'],  # Orange at 0.6
-    [0.9, 'rgb(0, 255, 255)'],  # Red at 0.8
-    [1.0, 'rgb(127, 255, 127)'],  # Purple at 1.0
+# Update colorbar in the following list
+custom_year_discovered_colors = [
+    [0.0, 'rgb(255, 0, 0)'],  # Red
+    [0.25, 'rgb(255, 165, 0)'],  # Orange
+    [0.5, 'rgb(255, 255, 0)'],  # Yellow megasecond (12 days)
+    [0.75, 'rgb(0, 255, 0)'],  # Green microsecond
+    [1.0, 'rgb(0, 0, 255)'],  # Blue attosecond
 ]
+
 
 def half_life_plot(data_):
     '''
@@ -79,30 +78,39 @@ def half_life_plot(data_):
     dataDecay = [['Unknown']*len(cols) for r in rows] # Grid to keep the known decay modes of each isotope
 
     # Populate Heatmap grid with information for stable nuclei first
-    stableNuclei = data_[data_['half_life']=='STABLE'].copy()
+    stableNuclei = data_[data_['half_life']=='STABLE']
     for i, row in stableNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = stableVal # Set to large log number to be effectively Stable
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        dataDecay[row['z']][row['n']] = row['common_decays']
+        try:
+            constructedMap[row['z'],row['n']] = stableVal # Set to large log number to be effectively Stable
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
     
     # Populate Heatmap grid with information for nuclei with unknown half-lives
     # notAvailableNuclei = data_[data_['half_life']==' '].copy() # Old version of IAEA data, was changed to NaN
-    notAvailableNuclei = data_[data_['half_life'].isna()].copy()
+    notAvailableNuclei = data_[data_['half_life'].isna()]
     for i, row in notAvailableNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = unknownVal # Set to large log number to be effectively unknown
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        if isinstance(row['common_decays'], float): # For nan types
-            dataDecay[row['z']][row['n']] = 'Not Available'
-        else:
-            dataDecay[row['z']][row['n']] = row['common_decays']
+        try:
+            constructedMap[row['z'],row['n']] = unknownVal # Set to large log number to be effectively unknown
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            if isinstance(row['common_decays'], float): # For nan types
+                dataDecay[row['z']][row['n']] = 'Not Available'
+            else:
+                dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
 
     # Populate Heatmap grid with information for all known unstable nuclei
     # unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life']!=' ')].copy() # Old version of IAEA data, was changed to NaN
-    unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life'].notnull())].copy()
+    unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life'].notnull())]
     for i, row in unstableNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = row['log(half_life_sec)']
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        dataDecay[row['z']][row['n']] = row['common_decays']
+        try:
+            constructedMap[row['z'],row['n']] = row['log(half_life_sec)']
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
     
     # Construct plotly heatmap
     chartMap = go.Heatmap(
@@ -140,35 +148,50 @@ def binding_energy_per_nucleon_plot(data_):
 
     # Get nuclei names and decay modes first:
     # Populate Heatmap grid with information for stable nuclei first
-    stableNuclei = data_[data_['half_life']=='STABLE'].copy()
+    stableNuclei = data_[data_['half_life']=='STABLE']
     for i, row in stableNuclei.iterrows():
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        dataDecay[row['z']][row['n']] = row['common_decays']
+        try:
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
     
     # Populate Heatmap grid with information for nuclei with unknown half-lives
     # notAvailableNuclei = data_[data_['half_life']==' ']
-    notAvailableNuclei = data_[data_['half_life'].isna()].copy()
+    notAvailableNuclei = data_[data_['half_life'].isna()]
     for i, row in notAvailableNuclei.iterrows():
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        dataDecay[row['z']][row['n']] = 'Not Available'
+        try:
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = 'Not Available'
+        except:
+            continue
 
     # Populate Heatmap grid with information for all known unstable nuclei
     # unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life']!=' ')] # Old version of IAEA data, was changed to NaN
-    unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life'].notnull())].copy()
+    unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life'].notnull())]
     for i, row in unstableNuclei.iterrows():
-        dataNames[row['z']][row['n']] = row['A_symbol']
-        dataDecay[row['z']][row['n']] = row['common_decays']
+        try:
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
     
     # Get known binding energy per nucleon for each known value
     # knownNuclei = data_[data_['binding']!=' '] # Old version of IAEA data, was changed to NaN
     knownNuclei = data_[data_['binding'].notnull()]
     for i, row in knownNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = float(row['binding'])
+        try:
+            constructedMap[row['z'],row['n']] = float(row['binding'])
+        except:
+            continue
     # Get nuclei with unknown binding energy per nucleon
     # unknownNuclei = data_[data_['binding']==' '] # Old version of IAEA data, was changed to NaN
     unknownNuclei = data_[data_['binding'].isna()]
     for i, row in unknownNuclei.iterrows():
-        constructedMap[row['z'],row['n']] = -10 # For unknown nuclei
+        try:
+            constructedMap[row['z'],row['n']] = -10 # For unknown nuclei
+        except:
+            continue
     # Construct plotly heatmap
     chartMap = go.Heatmap(
         z=constructedMap.tolist(),
@@ -180,6 +203,57 @@ def binding_energy_per_nucleon_plot(data_):
                     len=0.7,
                     # tickvals=[-21,-9,0,9,21,31,35],
                     # ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)']
+                    ),
+    )
+
+    return chartMap, dataNames, dataDecay
+
+def year_discovered_plot(data_):
+    '''
+    Given a pandas DataFrame with the assumed columns:
+     - z:                  Proton number
+     - n:                  Neutron number
+     - half_life:          Half life of nucleus (Used to get those nuclei with 'Stable' or no half life information available)
+     - A_symbol:           HTML formatted isotope name as <sup>{A}</sup>Symbol (e.g. <sup>4</sup>He for Helium-4)
+     - common_decays:      Reduced set of decay modes reducing everything to the most common mode
+                           (e.g. \beta^-, \beta^+, proton, neutron, and alpha)
+     - log(half_life_sec): Log of a nucleus' half life in seconds
+    '''
+    rows = data_['z'].unique()
+    cols = data_['n'].unique()
+
+    # Serves as the Heatmap grid spanning from minimum proton/neutron to maximum proton/neutron
+    constructedMap = np.ones((len(rows),len(cols))) * np.nan # By setting all to NaN, any element with no data will be Transparent and not plotted
+    dataNames = [['Unknown']*len(cols) for r in rows] # Grid to keep the names of each known isotope
+    dataDecay = [['Unknown']*len(cols) for r in rows] # Grid to keep the known decay modes of each isotope
+
+    # Remove discovery years with nan in them
+    data_ = data_.dropna(subset='discovery')
+
+    # Populate Heatmap grid with information for discovered nuclei
+    for i, row in data_.iterrows():
+        year = row['discovery']
+        # if is_number(year):
+        try:
+            constructedMap[row['z'],row['n']] = int(year) # Set to large log number to be effectively Stable
+            dataNames[row['z']][row['n']] = row['A_symbol']
+            dataDecay[row['z']][row['n']] = row['common_decays']
+        except:
+            continue
+    
+    # Set tick marks for years from minimum to maximum discovery year
+    yearTicks = np.linspace(min(data_['discovery']),max(data_['discovery']),6,dtype=int)
+
+    # Construct plotly heatmap
+    chartMap = go.Heatmap(
+        z=constructedMap.tolist(),
+        colorscale=custom_year_discovered_colors,
+        name='',
+        xgap=0.5, # Provide slight gap between each heatmap box
+        ygap=0.5, # Provide slight gap between each heatmap box
+        colorbar=dict(title='Year Discovered', # Update information on the colorbar
+                    len=0.7,
+                    tickvals=yearTicks,
                     ),
     )
 
