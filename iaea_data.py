@@ -2,7 +2,8 @@
 This file stores functions related to collecting IAEA nuclear data which can be called
 for other operations.
 
-Writen by: Joshua Wylie
+Written by:
+ - Joshua Wylie
 '''
 
 import pandas as pd
@@ -28,7 +29,7 @@ def NuChartGS():
 
     # Dictionary to rewrite more exotic decays with their initial decay step
     decayOrder = {'EC+B+':'EC','B+P':'B+','B-N':'B-','B-2N':'B-','B-A':'B-','ECP+EC2P':'EC','2EC':'EC',
-                'IT':'B-','ECP':'EC','2B+':'B+','ECSF':'SF',' ':'Not Available'} # Adjust to more common decays
+                'IT':'B-','ECP':'EC','2B-':'B-','2B+':'B+','ECSF':'SF',' ':'Not Available'} # Adjust to more common decays
 
     for i, row in ground_state.iterrows():
         # Convert data to log scale

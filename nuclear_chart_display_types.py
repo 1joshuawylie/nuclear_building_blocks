@@ -4,6 +4,14 @@ This file contains:
 Options for Nuclear Chart display:
  - Half lives
  - Binding Energy per Nucleon
+ - Year Discovered
+
+Also included are functions to plot:
+ - Magic Numbers for the given dataset range
+ - Scatter plot points for user-made nuclei
+
+Written by:
+ - Joshua Wylie
 '''
 
 import numpy as np
@@ -11,17 +19,12 @@ import pandas as pd
 import plotly.graph_objects as go
 import os
 
-import ast # For converting string of a list to a list
-
 def is_number(s):
     try:
         float(s)
         return True
     except ValueError:
         return False
-
-# def parseListDict(listString):
-#     return ast.literal_eval(listString)
 
 stableVal = 31
 unknownVal = 35
@@ -74,16 +77,12 @@ def half_life_plot(data_):
 
     # Serves as the Heatmap grid spanning from minimum proton/neutron to maximum proton/neutron
     constructedMap = np.ones((len(rows),len(cols))) * np.nan # By setting all to NaN, any element with no data will be Transparent and not plotted
-    dataNames = [['Unknown']*len(cols) for r in rows] # Grid to keep the names of each known isotope
-    dataDecay = [['Unknown']*len(cols) for r in rows] # Grid to keep the known decay modes of each isotope
 
     # Populate Heatmap grid with information for stable nuclei first
     stableNuclei = data_[data_['half_life']=='STABLE']
     for i, row in stableNuclei.iterrows():
         try:
             constructedMap[row['z'],row['n']] = stableVal # Set to large log number to be effectively Stable
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = row['common_decays']
         except:
             continue
     
@@ -93,11 +92,6 @@ def half_life_plot(data_):
     for i, row in notAvailableNuclei.iterrows():
         try:
             constructedMap[row['z'],row['n']] = unknownVal # Set to large log number to be effectively unknown
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            if isinstance(row['common_decays'], float): # For nan types
-                dataDecay[row['z']][row['n']] = 'Not Available'
-            else:
-                dataDecay[row['z']][row['n']] = row['common_decays']
         except:
             continue
 
@@ -107,8 +101,6 @@ def half_life_plot(data_):
     for i, row in unstableNuclei.iterrows():
         try:
             constructedMap[row['z'],row['n']] = row['log(half_life_sec)']
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = row['common_decays']
         except:
             continue
     
@@ -125,7 +117,7 @@ def half_life_plot(data_):
                     ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)']),
     )
 
-    return chartMap, dataNames, dataDecay
+    return chartMap#, dataNames, dataDecay
 
 def binding_energy_per_nucleon_plot(data_):
     '''
@@ -143,38 +135,6 @@ def binding_energy_per_nucleon_plot(data_):
 
     # Serves as the Heatmap grid spanning from minimum proton/neutron to maximum proton/neutron
     constructedMap = np.ones((len(rows),len(cols))) * np.nan # By setting all to NaN, any element with no data will be Transparent and not plotted
-    dataNames = [['Unknown']*len(cols) for r in rows] # Grid to keep the names of each known isotope
-    dataDecay = [['Unknown']*len(cols) for r in rows] # Grid to keep the known decay modes of each isotope
-
-    # Get nuclei names and decay modes first:
-    # Populate Heatmap grid with information for stable nuclei first
-    stableNuclei = data_[data_['half_life']=='STABLE']
-    for i, row in stableNuclei.iterrows():
-        try:
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = row['common_decays']
-        except:
-            continue
-    
-    # Populate Heatmap grid with information for nuclei with unknown half-lives
-    # notAvailableNuclei = data_[data_['half_life']==' ']
-    notAvailableNuclei = data_[data_['half_life'].isna()]
-    for i, row in notAvailableNuclei.iterrows():
-        try:
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = 'Not Available'
-        except:
-            continue
-
-    # Populate Heatmap grid with information for all known unstable nuclei
-    # unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life']!=' ')] # Old version of IAEA data, was changed to NaN
-    unstableNuclei = data_[(data_['half_life']!='STABLE')&(data_['half_life'].notnull())]
-    for i, row in unstableNuclei.iterrows():
-        try:
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = row['common_decays']
-        except:
-            continue
     
     # Get known binding energy per nucleon for each known value
     # knownNuclei = data_[data_['binding']!=' '] # Old version of IAEA data, was changed to NaN
@@ -201,12 +161,10 @@ def binding_energy_per_nucleon_plot(data_):
         ygap=0.5, # Provide slight gap between each heatmap box
         colorbar=dict(title='Binding Energy per Nucleon (BE/A) (keV))', # Update information on the colorbar
                     len=0.7,
-                    # tickvals=[-21,-9,0,9,21,31,35],
-                    # ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)']
                     ),
     )
 
-    return chartMap, dataNames, dataDecay
+    return chartMap#, dataNames, dataDecay
 
 def year_discovered_plot(data_):
     '''
@@ -224,8 +182,6 @@ def year_discovered_plot(data_):
 
     # Serves as the Heatmap grid spanning from minimum proton/neutron to maximum proton/neutron
     constructedMap = np.ones((len(rows),len(cols))) * np.nan # By setting all to NaN, any element with no data will be Transparent and not plotted
-    dataNames = [['Unknown']*len(cols) for r in rows] # Grid to keep the names of each known isotope
-    dataDecay = [['Unknown']*len(cols) for r in rows] # Grid to keep the known decay modes of each isotope
 
     # Remove discovery years with nan in them
     data_ = data_.dropna(subset='discovery')
@@ -233,11 +189,8 @@ def year_discovered_plot(data_):
     # Populate Heatmap grid with information for discovered nuclei
     for i, row in data_.iterrows():
         year = row['discovery']
-        # if is_number(year):
         try:
-            constructedMap[row['z'],row['n']] = int(year) # Set to large log number to be effectively Stable
-            dataNames[row['z']][row['n']] = row['A_symbol']
-            dataDecay[row['z']][row['n']] = row['common_decays']
+            constructedMap[row['z'],row['n']] = int(year)
         except:
             continue
     
@@ -257,7 +210,7 @@ def year_discovered_plot(data_):
                     ),
     )
 
-    return chartMap, dataNames, dataDecay
+    return chartMap#, dataNames, dataDecay
 
 def drawMagicNumbers(fig_,xRange,yRange,xoffset,yoffset):
     # Draw magic number boxes and images of tiles
@@ -292,7 +245,7 @@ def drawMagicNumbers(fig_,xRange,yRange,xoffset,yoffset):
                     source=f'assets/shell_closure_{pm}.png',
                     xref="x",
                     yref="y",
-                    x=min(xRange),
+                    x=min(xRange)+0.5,
                     y=pm
                 )
             )
@@ -337,8 +290,8 @@ def show_user_made_nuclei(fig_,chartData):
     noDuplicatesASym['n'] = noDuplicatesASym['A'] - noDuplicatesASym['z']
     
     fig_.add_trace(go.Scatter(
-        x=noDuplicatesASym['n'],
-        y=noDuplicatesASym['z'],
+        x=noDuplicatesASym['n']+0.25, # Offset to place markers in the corner of the heatmap tiles
+        y=noDuplicatesASym['z']+0.25,
         mode='markers',
         hoverinfo='skip',
         showlegend=False,
@@ -347,3 +300,13 @@ def show_user_made_nuclei(fig_,chartData):
             symbol='diamond'
         )
     ))
+
+def check_if_user_made(A,symbol):
+    # Checks if provided nucleus was made by a user, returns True if made
+    # List all found image files in 'assets/Approved_Pictures'
+    picturePath = 'assets/Approved_Pictures'
+    listPictures = [f for f in os.listdir(picturePath) if os.path.isfile(os.path.join(picturePath,f))]
+    # Split before the excitation number by keeping the first list element of a split('_') string
+    listNuclei = [ln.split('_')[0] for ln in listPictures]
+
+    return str(A)+symbol in listNuclei
