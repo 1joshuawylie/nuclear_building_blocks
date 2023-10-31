@@ -28,6 +28,7 @@ def is_number(s):
 
 stableVal = 31
 unknownVal = 35
+colorbar_axis_offset = -0.3
 # Update colorbar in the following list
 custom_half_life_colors = [
     [0.0, 'rgb(143, 0, 255)'],  # Violet zeptosecond
@@ -59,7 +60,6 @@ custom_year_discovered_colors = [
     [0.75, 'rgb(0, 255, 0)'],  # Green microsecond
     [1.0, 'rgb(0, 0, 255)'],  # Blue attosecond
 ]
-
 
 def half_life_plot(data_):
     '''
@@ -111,10 +111,16 @@ def half_life_plot(data_):
         name='',
         xgap=0.5, # Provide slight gap between each heatmap box
         ygap=0.5, # Provide slight gap between each heatmap box
-        colorbar=dict(title='log<sub>10</sub>(T<sub>1/2</sub> (s))', # Update information on the colorbar
-                    len=0.7,
-                    tickvals=[-21,-9,0,9,21,31,35],
-                    ticktext=['zs','ns','s','Gs (or 31.7 years)','Zs (or 31.7 trillion years)','Stable (Black)','Unknown (Grey)']),
+        colorbar=dict(#title='log<sub>10</sub>(T<sub>1/2</sub> (s))', # Update information on the colorbar
+                      x=0,
+                      y=colorbar_axis_offset,
+                      xanchor='left',
+                      len=1,
+                      orientation='h',
+                      tickvals=[-21,-9,0,9,21,31,35],
+                      ticktext=['zeptoseconds','nanoseconds','seconds','31.7 years',
+                                '31.7 trillion years','Stable (Black)','Unknown (Grey)'],
+                      tickfont_color='white'),
     )
 
     return chartMap#, dataNames, dataDecay
@@ -153,15 +159,24 @@ def binding_energy_per_nucleon_plot(data_):
         except:
             continue
     # Construct plotly heatmap
+    # Set tick marks for years from minimum to maximum binding energy
+    axisVals = np.linspace(min(data_['binding'].dropna()),max(data_['binding'].dropna()),6)
+    axisText = ['{:.0f} keV'.format(val) for val in axisVals]
     chartMap = go.Heatmap(
         z=constructedMap.tolist(),
         colorscale=custom_binding_energy_per_nucleon_colors,
         name='',
         xgap=0.5, # Provide slight gap between each heatmap box
         ygap=0.5, # Provide slight gap between each heatmap box
-        colorbar=dict(title='Binding Energy per Nucleon (BE/A) (keV))', # Update information on the colorbar
-                    len=0.7,
-                    ),
+        colorbar=dict(#title='log<sub>10</sub>(T<sub>1/2</sub> (s))', # Update information on the colorbar
+                      x=0,
+                      y=colorbar_axis_offset,
+                      xanchor='left',
+                      len=1,
+                      orientation='h',
+                      tickvals=axisVals,
+                      ticktext=axisText,
+                      tickfont_color='white'),
     )
 
     return chartMap#, dataNames, dataDecay
@@ -194,20 +209,25 @@ def year_discovered_plot(data_):
         except:
             continue
     
-    # Set tick marks for years from minimum to maximum discovery year
-    yearTicks = np.linspace(min(data_['discovery']),max(data_['discovery']),6,dtype=int)
-
     # Construct plotly heatmap
+    # Set tick marks for years from minimum to maximum discovery year
+    axisVals = np.linspace(min(data_['discovery'].dropna()),max(data_['discovery'].dropna()),6)
+    axisText = ['{:.0f}'.format(val) for val in axisVals]
     chartMap = go.Heatmap(
         z=constructedMap.tolist(),
         colorscale=custom_year_discovered_colors,
         name='',
         xgap=0.5, # Provide slight gap between each heatmap box
         ygap=0.5, # Provide slight gap between each heatmap box
-        colorbar=dict(title='Year Discovered', # Update information on the colorbar
-                    len=0.7,
-                    tickvals=yearTicks,
-                    ),
+        colorbar=dict(#title='log<sub>10</sub>(T<sub>1/2</sub> (s))', # Update information on the colorbar
+                      x=0,
+                      y=colorbar_axis_offset,
+                      xanchor='left',
+                      len=1,
+                      orientation='h',
+                      tickvals=axisVals,
+                      ticktext=axisText,
+                      tickfont_color='white'),
     )
 
     return chartMap#, dataNames, dataDecay
@@ -222,7 +242,7 @@ def drawMagicNumbers(fig_,xRange,yRange,xoffset,yoffset):
     for nm in neutronMagic:
         fig_.add_shape(type='rect',
             x0=nm-0.5,x1=nm+0.5,y0=min(yRange)+yoffset,y1=max(yRange)+0.5,
-            opacity=0.5,layer='below',fillcolor='grey',line_width=0
+            opacity=0.5,layer='below',fillcolor='#5eb588',line_width=0
         )
         if max(xRange) < 50:
             fig_.add_layout_image(
@@ -237,7 +257,7 @@ def drawMagicNumbers(fig_,xRange,yRange,xoffset,yoffset):
     for pm in protonMagic:
         fig_.add_shape(type='rect',
             x0=min(xRange)+xoffset,x1=max(xRange)+0.5,y0=pm-0.5,y1=pm+0.5,
-            opacity=0.5,layer='below',fillcolor='grey',line_width=0
+            opacity=0.5,layer='below',fillcolor='#5eb588',line_width=0
         )
         if max(yRange) < 50:
             fig_.add_layout_image(

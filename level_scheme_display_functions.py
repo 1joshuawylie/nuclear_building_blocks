@@ -30,7 +30,10 @@ Written by:
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
-from dash import html
+from dash import html, dcc
+import dash_bootstrap_components as dbc
+
+levelGroupColors = ['rgba(75, 158, 214, 0.5)','rgba(255, 157, 36, 0.5)','rgba(163, 42, 205, 0.5)','rgba(200, 0, 4, 0.5)']
 
 def plot_separation_energy(fig_,s_,xMin,xMax,nucType,nucColor):
     '''
@@ -63,11 +66,6 @@ def plot_separation_energy(fig_,s_,xMin,xMax,nucType,nucColor):
         return None
     return None
 
-def show_built_nucleus(headerText,imageLoc):
-    builtNucleusHeader = html.Td(headerText)
-    builtNucleusPicture = html.Img(src=imageLoc,style={'height':'45vh'})
-    return builtNucleusHeader, builtNucleusPicture
-
 def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
     '''
     Given: a Plotly Graph Object, x array, list of Energy, list of half life, list of half life units
@@ -83,7 +81,7 @@ def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
     else: # Remaining 
         fig_.add_shape(type='line',
                        x0=x_-xstep, x1=x_+xstep, y0=E, y1=E,
-                       line_color='black')
+                       line_color='white')
         
         # For states with a noticable decay width (keV, MeV, etc.)
         if 'eV' in half_life_units:
@@ -180,7 +178,9 @@ def drawGroupBox(fig_,minX,maxX,minE,maxE,groupID):
                 mode='lines',
                 text=f'Excitation Group: {groupID}',
                 hoverinfo='text',
-                showlegend=False
+                showlegend=False,
+                fillcolor=levelGroupColors[groupID],
+                line=dict(color='rgba(0, 0, 0, 0)'),  # Set line color to None (fully transparent)
             ))
     return None
 
@@ -246,13 +246,11 @@ def plot_simplified_level_scheme(groundStateData,levelData,num_clusters=3,max_le
     levels = levelData.copy()
     n, z = levels['n'].unique()[0], levels['z'].unique()[0]
     # In the event we have tons of level data, for the sake of time, we filter out to the states with known J^\pi values (i.e. drop parenthesis values)
-    print(len(levels['energy']))
     if len(levels['energy']) > max_levels:
         levels = levels[levels['jp'].str.contains('\(|\)') == False]
     # If still more than max_levels levels, we will get rid of those with highest energy
     levels.sort_values('energy')
     levels = levels.head(max_levels)
-    print(len(levels['energy']))
     # Get initial data
     n, z = levels['n'].unique()[0], levels['z'].unique()[0]
     levels['energy'] = levels['energy'] * 10**-3

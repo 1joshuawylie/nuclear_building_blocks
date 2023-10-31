@@ -17,6 +17,7 @@ from dash import ctx # Used for identifying callback_context
 import dash_daq as daq
 import dash_bootstrap_components as dbc
 import json
+# from dash_breakpoints import WindowBreakpoints
 
 # Import helpful iaea nuclear data functions
 import iaea_data as iaea
@@ -24,6 +25,7 @@ import iaea_data as iaea
 # Custom dash functions related to this code
 import nuclear_chart_display_types as ncdt
 import level_scheme_display_functions as lsdf
+import hover_nuclear_data as hnd
 
 # Call ground state information from IAEA
 ground_state = iaea.NuChartGS()
@@ -60,8 +62,52 @@ def getExcitationGroupString(string_):
 
 #%%
 # Begin designing dash layout and components of layout
-app = Dash(__name__,external_stylesheets=[dbc.themes.SLATE])
-# app = Dash(__name__,meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1'}])
+
+theme = dbc.themes.CYBORG
+theme_name = 'cyborg'
+
+# Uncomment to see layout properties of chosen theme above to set text, background, etc. 
+from dash_bootstrap_templates import load_figure_template
+import plotly.io as pio
+
+load_figure_template(theme_name)
+plotly_template = pio.templates[theme_name]
+plotly_template.layout = {
+    'xaxis': {
+        'titlefont': {
+            'color': 'white',  # Set to a color that's visible on the dark background
+            'size': 16,
+        },
+        'tickfont': {
+            'color': 'white',  # Set to a suitable color
+            'size': 12,
+        },
+    },
+    'yaxis': {
+        'titlefont': {
+            'color': 'white',  # Set to a color that's visible on the dark background
+            'size': 16,
+        },
+        'tickfont': {
+            'color': 'white',  # Set to a suitable color
+            'size': 12,
+        },
+    },
+    'legend': {
+        'font': {
+            'color': 'white'
+        }
+    },
+    'paper_bgcolor': '#292b2c',  # Set the background color to match CYBORG theme
+    'plot_bgcolor': '#292b2c',  # Set the background color to match CYBORG theme
+}
+# write to file for easy viewing
+# with open('layout_plotly_template.txt', 'w') as file:
+#     for item in plotly_template.layout:
+#         file.write(item+': ')
+#         file.write(str(plotly_template.layout[item])+'\n')
+
+app = Dash(__name__,external_stylesheets=[theme])
 
 ######################################################################
 ########## Dash layout components relating to Nuclear Chart ##########
@@ -76,7 +122,8 @@ chart_options = dbc.Offcanvas(
                 dcc.Dropdown(
                     ['Half Life', 'Binding Energy Per Nucleon', 'Year Discovered'],
                     'Half Life',
-                    id='chart_type'
+                    id='chart_type',
+                    clearable=False,
                 )
             ]),
         ##### Proton Slider #####
@@ -129,41 +176,49 @@ chart_options = dbc.Offcanvas(
     ],
     id='offcanvas',
     is_open=False,
-    title='Nuclear Chart Options'
+    title='Nuclear Chart Options',
 )
 # Layout component of plot of nuclear chart itself
 chart_plot = dbc.Card(
     [
-        ##### Nuclear Chart #####
+        ##### Nuclear Chart #####title = 'Nuclear Chart: log(Half Life)'
+        dbc.CardHeader(id='nuclear_chart_title'),
         dcc.Graph(
-            id='nuclear_chart',style={'height':'80vh'},
-            clear_on_unhover=True
+            id='nuclear_chart',
+            clear_on_unhover=True,
+            style={'height':'80vh'},
         ),
-        dcc.Tooltip(id='chart_tooltip')
-    ]
+        dcc.Tooltip(id='chart_tooltip',
+                    background_color=None,
+                    border_color=None)
+    ], className='nuclear_chart', #color='dark'
 )
 
 #####################################################################
 ########## Dash layout components relating to Level Scheme ##########
 #####################################################################
-level_scheme = dbc.Card(
+levels_and_nucleus_images = html.Div(
     [
         ##### Level Scheme Plot #####
-        dcc.Graph(
-            id='level_scheme',style={'height':'45vh'}
+        dbc.Card(
+            [
+                dbc.CardHeader(id='level_scheme_title'),
+                dcc.Graph(
+                    id='level_scheme',#,style={'height':'50vh'}
+                ),
+            ], #color='dark'
         ),
-    ]
-)
-built_nucleus_images = dbc.Card(
-    [
-        dbc.Label(id='display_built_nucleus_name'), # Lable for user built nuclei
         ##### Load Images of User-Built Nuclei #####
         dcc.Loading(id='loading_level_scheme',
                     type='cube',
                     children=[dbc.Card(
-            id='block_built_nucleus'
-        ),])
-    ]
+                        [
+                            dbc.CardHeader(id='built_nucleus_title'),
+                            dbc.CardImg(id='built_nucleus')
+                        ], #color='dark'
+                    )]
+        )
+    ], className='levels',
 )
 
 
@@ -177,7 +232,7 @@ header = html.Div(
             [
                 html.H1('Welcome to the Interactive Nuclear Chart!'),
                 html.Hr(),
-                html.P('If you haven\'t already played our game, check it out here!'),
+                html.H5('If you haven\'t already played our game, check it out here!'),
                 # Add code here...
             ]
         ),
@@ -187,99 +242,97 @@ header = html.Div(
 tips = html.Div(
     [
         ##### Information in "Tips" section #####
-        html.H4('Tips:',className='card-title'),
-        dbc.ListGroup(
+        dbc.Card(
             [
-                dbc.ListGroupItem(
-                    'The chart starts with the maximum view setting of 20 protons and 28 neutrons.'+
-                    ' Be sure to click the \"Nuclear Chart Options\" button to play around with the '+
-                    'chart type and number of protons and neutrons viewed.'
+                # html.H4('Tips:'),
+                dbc.CardHeader([html.H4('Tips:'),]),
+                dbc.ListGroup(
+                    [
+                        dbc.ListGroupItem(
+                            'The chart starts with the maximum view setting of 20 protons and 28 neutrons.'+
+                            ' Be sure to click the \"Nuclear Chart Options\" button to play around with the '+
+                            'chart type and number of protons and neutrons viewed.'
+                        ),
+                        dbc.ListGroupItem(
+                            'All of the nuclei on the nuclear chart have been acually observed by scientists!'+
+                            ' That being said, we need your help to build (\"discover\") a block version of each one.'
+                        ),
+                        dbc.ListGroupItem(
+                            'Click on a specific nucleus to see its level scheme on the left panel below and a '+
+                            'picture of its ground state which was built by another user on the right below. It\'s '+
+                            'possible that no one has managed to build that state or submitted their \"discovery\", '+
+                            'so if that\'s the case consider submitting your own construction!'
+                        ),
+                        # Add code for more Tips here...
+                    ],
+                    numbered=True
                 ),
-                dbc.ListGroupItem(
-                    'All of the nuclei on the nuclear chart have been acually observed by scientists!'+
-                    ' That being said, we need your help to build (\"discover\") a block version of each one.'
+                html.Br(),
+                html.Div(
+                    [
+                        dbc.Button('Open Nuclear Chart Options',id='open_chart_offcanvas',n_clicks=0),
+                        chart_options,
+                    ]
                 ),
-                dbc.ListGroupItem(
-                    'Click on a specific nucleus to see its level scheme on the left panel below and a '+
-                    'picture of its ground state which was built by another user on the right below. It\'s '+
-                    'possible that no one has managed to build that state or submitted their \"discovery\", '+
-                    'so if that\'s the case consider submitting your own construction!'
-                ),
-                # Add code for more Tips here...
-            ],
-            numbered=True
-        ),
-        html.Br(),
-        html.Div(
-            [
-                dbc.Button('Open Nuclear Chart Options',id='open_chart_offcanvas',n_clicks=0),
-                chart_options,
+                # Add code for more buttons or other options here...
             ]
-        ),
-        # Add code for more buttons or other options here...
-    ]
+        )
+    ], className='tips',
 )
 
 #########################################################
 ########## Dash layout structure for first tab ##########
 #########################################################
 primaryTab = html.Div([
-    dbc.Card([
-        dbc.Row([
-            dbc.Card([
-                dbc.Row(
-                    [
-                        dbc.Col(
-                            [
-                                tips
-                            ], width=3
-                        ),
-                        dbc.Col(
-                            [
-                                chart_plot
-                            ], width=6
-                        ),
-                        dbc.Col([
-                            level_scheme,
-                            built_nucleus_images
-                        ], width=3),
-                    ]
-                )
-            ])
-        ], align='center'),    
-    ])
-])
+    tips,
+    chart_plot,
+    levels_and_nucleus_images,
+],className='primary_container')
 
 ##########################################################
 ########## Dash layout structure for second tab ##########
 ##########################################################
 submissionsTab = html.Div(
     [
-        html.H1('Did you discover a new nucleus?'),
+        html.H3('Did you discover a new nucleus?'),
         html.Hr(),
-        dbc.Card(
+        html.Div(
             [
-                dbc.Row([
-                    dbc.Col(
-                        [
-                            dbc.CardBody(
-                                [
-                                    html.Td([dcc.Link('Click here',href='https://forms.gle/wKGLPipALwGx9fuA6',target='_blank'),
-                                             ' or scan the QR code to document your discovery and start the peer review process!']),
-                                    html.Br(),
-                                    html.Td(['Note: Peer-Reviewing takes time and is usually done by volunteers. This may lead to ',
-                                             'a delay in the publication of your nuclear data.'])
-                                ]
-                            ),
-                        ],width=4
-                    ),
-                    dbc.Col(
-                        [
-                            dbc.CardImg(src='assets/form_qr_code.png'),
-                        ],width=4
-                    )
-                ])
-            ],
+                dbc.Card(
+                    [
+                        dbc.CardBody(html.H5([dcc.Link('Click here',href='https://forms.gle/wKGLPipALwGx9fuA6',target='_blank'),
+                                    ' or scan the QR code to document your discovery and start the peer review process!'])),
+                        dbc.CardImg(src='assets/form_qr_code.png',bottom=True),
+                    ], className='submission_links',
+                ),
+                dbc.Card(
+                    [
+                        dbc.CardHeader([html.H4('Note:')]),
+                        dbc.CardBody(
+                            [
+                                dbc.ListGroup(
+                                    [
+                                        dbc.ListGroupItem(
+                                            'Peer-Reviewing takes time and is usually done by volunteers. This may lead to '+
+                                            'a delay in the publication of your nuclear data.'
+                                        ),
+                                        dbc.ListGroupItem(
+                                            'We do not require the submission of any personal information in the submission of '+
+                                            'pictures for peer-review.'
+                                        ),
+                                        dbc.ListGroupItem(
+                                            ['Minors (anyone under the age of 18) ',
+                                            html.B('must obtain approval from their parent or guardian'),
+                                            ' before submitting any information into the peer-review process to ensure their privacy.']
+                                        ),
+                                        # Add code for more Tips here...
+                                    ],
+                                ),
+                            ]
+                        )
+                    ], className='submission_notes',
+                ),
+            ],className='secondary_container'
         )
     ]
 )
@@ -297,7 +350,8 @@ app.layout = html.Div([
             dbc.Tab(submissionsTab, label='Discovery Submissions')
             # Add additional tabs here...
         ]
-    )
+    ),
+    html.Link(rel="stylesheet", href="layout_styles.css")
 ])
 
 
@@ -319,6 +373,7 @@ def toggle_offcanvas(n1, is_open):
 ##### Nuclear Chart callbacks #####
 @callback(
     Output('nuclear_chart','figure'),
+    Output('nuclear_chart_title','children'),
     Input('chart_type','value'),
     Input('neutron_axis_slider','value'),
     Input('proton_axis_slider','value'),
@@ -339,25 +394,32 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
     if chart_type_name == 'Half Life':
         chart_type = ncdt.half_life_plot(currentData)
         chart.add_traces([chart_type])
-        chart.update_layout(title=dict(text='Nuclear Chart: log(Half Life)'))
+        # chart.update_layout(title=dict(text='Nuclear Chart: log(Half Life)'))
+        title = html.H5(['Nuclear Chart: log(Half Life)'])
         
     elif chart_type_name == 'Binding Energy Per Nucleon':
         chart_type = ncdt.binding_energy_per_nucleon_plot(currentData)
         chart.add_traces([chart_type])
-        chart.update_layout(title=dict(text='Nuclear Chart: Binding Energy Per Nucleon'))
+        # chart.update_layout(title=dict(text='Nuclear Chart: Binding Energy Per Nucleon'))
+        title = html.H5(['Nuclear Chart: Binding Energy Per Nucleon'])
     
     elif chart_type_name == 'Year Discovered':
         chart_type = ncdt.year_discovered_plot(currentData)
         chart.add_traces([chart_type])
-        chart.update_layout(title=dict(text='Nuclear Chart: Year Discovered'))
+        # chart.update_layout(title=dict(text='Nuclear Chart: Year Discovered'))
+        title = html.H5(['Nuclear Chart: Year Discovered'])
 
     # Draw magic numbers
     ncdt.drawMagicNumbers(chart,xrange,yrange,xoffset, yoffset)
 
     # Set any chart labels, aspect ratio, etc.
+    magicNumbers = [2, 8, 20, 28, 50, 82, 126]
+    # store current values of magic numbers that fall within given range
+    xVals = [m for m in magicNumbers if (m >= min(xrange)) and (m <= max(xrange))]
+    yVals = [m for m in magicNumbers if (m >= min(yrange)) and (m <= max(yrange))]
     chart.update_layout(yaxis_scaleanchor='x') # Fix aspect ratio
-    chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange,showgrid=False)
-    chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True,showgrid=False)
+    chart.update_xaxes(title_text='Number of Neutrons',showspikes=True,range=xrange,showgrid=False,side='top',tickvals=xVals)
+    chart.update_yaxes(title_text='Number of Protons',showspikes=True,range=yrange,automargin=True,showgrid=False,tickvals=yVals)
     
     # Suppress Plotly default hover info and replace later with 'display_hover' function
     chart.update_traces(hoverinfo='none',hovertemplate=None)
@@ -377,19 +439,20 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
         ))
     if 2 in toggle_options:
         ncdt.show_user_made_nuclei(chart,currentData)
-    return chart
+    return chart, title
 
 ##### More sophisticated hovermode for Nuclear Chart controlled through the following callback #####
 @callback(
-    Output("chart_tooltip", "show"),
-    Output("chart_tooltip", "bbox"),
-    Output("chart_tooltip", "children"),
+    Output("chart_tooltip", "show"), # Returns 'show' property specifically used in dcc.Tooltip()
+    Output("chart_tooltip", "bbox"), # Returns 'bbox' property specifically used in dcc.Tooltip()
+    Output("chart_tooltip", "children"), # Returns 'children' property specifically used in dcc.Tooltip()
+    Output("chart_tooltip", "direction"), # Returns 'direction' property specifically used in dcc.Tooltip()
     Input("nuclear_chart", "hoverData"),
 )
 def display_hover(hoverData):
     global currentData
     if hoverData is None:
-        return False, no_update, no_update
+        return False, no_update, no_update, no_update
 
     # demo only shows the first point, but other points may also be available
     pt = hoverData["points"][0]
@@ -399,36 +462,10 @@ def display_hover(hoverData):
     df_row = currentData[(currentData['n']==pt['x'])&(currentData['z']==pt['y'])]
     # For no data, Return nothing
     if df_row.empty:
-        return False, no_update, no_update
+        return False, no_update, no_update, no_update
     
-    # Dictionary of possible decay mode image paths
-    decayImgSrc = {
-        'B-':'assets/decay_modes/beta-.png',
-        'B+':'assets/decay_modes/beta+.png',
-        'EC':'assets/decay_modes/EC.png',
-        'N':'assets/decay_modes/N.png',
-        'P':'assets/decay_modes/P.png',
-        '2N':'assets/decay_modes/2N.png',
-        '2P':'assets/decay_modes/2P.png',
-        'A':'assets/decay_modes/A.png',
-        'nan':'assets/decay_modes/unknown.png',
-        'Stable':'assets/decay_modes/stable.png',
-    }
-    # Dictionary of shown information on hover for the decay mode
-    decayName = {
-        'B-':['Decays by: \u03B2',html.Sup('-'),' Decay'],
-        'B+':['Decays by: \u03B2',html.Sup('+'),' Decay'],
-        'EC':'Decays by: Electron Capture',
-        'N':'Decays by: Neutron Emission',
-        'P':'Decays by: Proton Emission',
-        '2N':'Decays by: 2 Neutron Emission',
-        '2P':'Decays by: 2 Proton Emission',
-        'A':['Decays by: \u03B1 Decay'],
-        'nan':'Unknown Decay Mode',
-        'Stable':'Stable'
-    }
 
-    img_src = decayImgSrc[str(df_row['common_decays'].values[0])] # Get decay image location
+    img_src = hnd.decayImgSrc[str(df_row['common_decays'].values[0])] # Get decay image location
     A =  int(df_row['n'].values[0])+int(df_row['z'].values[0]) # Get A value
     symbol = df_row['symbol'].values[0] # Get element symbol
     text = [html.Sup(str(A)), symbol] # Compile Isotope name into correct scientific format with superscript
@@ -441,42 +478,59 @@ def display_hover(hoverData):
 
     # Describe layout of hover info as a html.Div()
     children = [
-        html.Div([
-            dbc.Row(
+        dbc.Card([
+            dbc.CardHeader(
                 [
-                    dbc.Col(
-                        html.H1(text), # Header with Isotope name
+                    dbc.Row(
+                        [
+                            dbc.Col(
+                                html.H1(text), # Header with Isotope name
+                            ),
+                            dbc.Col(
+                                [
+                                    html.P([hnd.symbol_elements[symbol]]),
+                                    html.P(discovered,) # Display if discovered
+                                ]
+                            )
+                        ]
                     ),
-                    dbc.Col(
-                        html.P(discovered) # Display if discovered
-                    )
                 ]
             ),
-            html.P(decayName[str(df_row['common_decays'].values[0])]), # Decay mode type name
+            html.P(hnd.decayName[str(df_row['common_decays'].values[0])]), # Decay mode type name
             html.Img(src=img_src, style={"width": "100%"}), # Decay mode type image
             # Add extra code here for more details for each nucleus...
             html.P(['Images are a general depiction of the decay process.' +
                     ' They may only show an example nucleus in the decay, not the current viewed nucleus'],
                    style={'font-size':'12px'}), # Tiny disclaimer at the bottom
-        ], style={'width': '200px', 'white-space': 'normal'})
+        ],style={'width': '300px', 'white-space': 'normal'},color='primary', inverse=True)
     ]
 
-    return True, bbox, children
+    # # To avoid being cutoff by the edge of the chart, move the direction the hover box appears
+    direction = 'right'
+    midPt = min(currentData['n']) + (max(currentData['n']) - min(currentData['n'])) / 2
+    if pt['x'] > midPt:
+        direction = 'left'
+    return True, bbox, children, direction
 
 
 ##### Level Scheme callbacks #####
 @callback(
     Output('level_scheme','figure'),
-    Output('display_built_nucleus_name','children'),
-    Output('block_built_nucleus','children'),
+    Output('level_scheme_title','children'),
+    Output('built_nucleus','src'),
+    Output('built_nucleus_title','children'),
     Input('nuclear_chart','clickData'),
-    Input('level_scheme','hoverData')
+    Input('level_scheme','clickData')
 )
-def update_level_scheme(clickData, hoverData):
+def update_level_scheme(chartClickData, levelClickData):
     global isotopeLevels # Modify global variable of isotope levels
-    dumpClick = json.loads(json.dumps(clickData)) # json info from clicking nuclear chart
-    dumpHover = json.loads(json.dumps(hoverData)) # json info from hovering over level scheme levels or group
+    dumpClick = json.loads(json.dumps(chartClickData)) # json info from clicking nuclear chart
+    dumpHover = json.loads(json.dumps(levelClickData)) # json info from hovering over level scheme levels or group
     triggerID = ctx.triggered_id # Determine the type of id that was triggered (hover, click, or None)
+
+    # In the case someone clicks not on a valid nucleus on the nuclear chart, we don't send any updates
+    if (triggerID == 'nuclear_chart') and (dumpClick['points'][0]['z'] == None):
+        return no_update, no_update, no_update, no_update
 
     # When we click on a new nucleus on the nuclear chart, load the corresponding level data, this avoids unnecessary reloads
     if triggerID == 'nuclear_chart':
@@ -490,6 +544,7 @@ def update_level_scheme(clickData, hoverData):
         # Get level data and plot levels
         isotopeLevels = iaea.NuChartLevels(A,symbol)
     
+    #### Loading Images of Built nuclei ####
     imagePath = 'assets/'
     # Default don't show a level scheme
     if triggerID is None:
@@ -498,26 +553,28 @@ def update_level_scheme(clickData, hoverData):
         levels.add_trace(go.Scatter(
             x=[1],
             y=[1],
-            text=["Please click a nucleus to see its levels"],
+            text=[lsdf.customwrap("Please click a nucleus to see its levels")],
             mode="text",
             hoverinfo='skip',
+            textfont={
+                'color':'white'
+            }
         ))
         levels.update_yaxes(showticklabels=False,showgrid=False)
         levels.update_xaxes(showticklabels=False,showgrid=False)
+        levels_title = html.H6(['Please select a nucleus:'])
 
         ### Built nucleus image ###
         # Default header information 
-        text = ['Please select a nucleus to see a block version of it: ']
+        text = html.H6(['Please select a nucleus to see a block version of it:'])
         image = imagePath + 'logo.png'
-        builtNucleusHeader, builtNucleusPicture = lsdf.show_built_nucleus(text,image) # Shows default logo and text
-        levels.update_layout(title=dict(text=f'Please select a nucleus:')) # Title
 
     # When a nucleus is selected on the nuclear chart, update level scheme and image to ground state '_0'
     elif triggerID == 'nuclear_chart':
         ### Level scheme ###
         # Note, we can also print the detailed level scheme for each level using function plot_level_scheme()
         levels = lsdf.plot_simplified_level_scheme(ground_state,isotopeLevels)
-        levels.update_layout(title=dict(text=f'Level Scheme for <sup>{A}</sup>{symbol}')) # Title
+        levels_title = html.H6(['Level Scheme for ',html.Sup(A),symbol])
 
         ### Built nucleus image ###
         # Get list of files in desired directory (note: all images MUST be in a directory called 'assets')
@@ -528,28 +585,26 @@ def update_level_scheme(clickData, hoverData):
 
         # For showing picture of built nucleus
         if not pictureFile: # If picture file list is empty, display discovery image and text
-            text = ['Hey, it looks like no one has discovered this state yet! Did you make this state?']
+            text = html.H6(['Hey, it looks like no one has discovered this state yet! Did you make this state?'])
             image = imagePath + 'nuclear_discovery_logo.png'
-            builtNucleusHeader, builtNucleusPicture = lsdf.show_built_nucleus(text,image)
         else: # If picture was found, shows the ground state
             discovererNames = collaboratorNames(pictureFile[0])
-            text = ['You\'re currently looking at the ground state of: ',
+            text = html.H6(['You\'re currently looking at the ground state of: ',
                     html.Sup(str(A)), symbol, html.Br(),
-                    'Discovered by: ',discovererNames]
-            builtNucleusHeader, builtNucleusPicture = lsdf.show_built_nucleus(text,os.path.join(picturePath,pictureFile[0]))
+                    'Discovered by: ',discovererNames])
+            image = os.path.join(picturePath,pictureFile[0])
 
     # When a level or excitation group is hovered over on the level scheme graph, update built image to the excitation '_#'
     elif triggerID == 'level_scheme':
         # Get data for level or excitation group before displaying image or level scheme
         A = isotopeLevels['n'].unique()[0] + isotopeLevels['z'].unique()[0]
         symbol = isotopeLevels['symbol'].unique()[0]
-        # excitation = dumpHover['points'][0]['pointIndex'] # old usage for plot_level_scheme() function
         excitation = dumpHover['points'][0]['customdata'][0] # new usage for plot_simplified_level_scheme() function
 
         ### Level scheme ###
         # Note, we can also print the detailed level scheme for each level using function plot_level_scheme()
         levels = lsdf.plot_simplified_level_scheme(ground_state,isotopeLevels)
-        levels.update_layout(title=dict(text=f'Level Scheme for <sup>{A}</sup>{symbol}')) # Title
+        levels_title = html.H6(['Level Scheme for ',html.Sup(A),symbol])
 
         ### Built nucleus image ###
         # Get list of files in directory
@@ -560,18 +615,17 @@ def update_level_scheme(clickData, hoverData):
 
         # For showing picture of built nucleus
         if not pictureFile: # If picture file list is empty, display discovery image and text
-            text = ['Hey, it looks like no one has discovered this state yet! Did you make this state?']
+            text = html.H6(['Hey, it looks like no one has discovered this state yet! Did you make this state?'])
             image = imagePath + 'nuclear_discovery_logo.png'
-            builtNucleusHeader, builtNucleusPicture = lsdf.show_built_nucleus(text,image)
         else: # If picture was found, shows the ground state
             discovererNames = collaboratorNames(pictureFile[0]) # Given a file name, get a string of collaborator names
             exString = getExcitationGroupString(pictureFile[0]) # Given a file name, get the excitation in a nice html format
-            text = [f'You\'re currently looking at the ', exString[0], exString[1], exString[2], ' of: ',
+            text = html.H6([f'You\'re currently looking at the ', exString[0], exString[1], exString[2], ' of: ',
                     html.Sup(str(A)), symbol, html.Br(),
-                    'Discovered by: ',discovererNames]
-            builtNucleusHeader, builtNucleusPicture = lsdf.show_built_nucleus(text,os.path.join(picturePath,pictureFile[0]))
-    
-    return levels, builtNucleusHeader, builtNucleusPicture
+                    'Discovered by: ',discovererNames])
+            image = os.path.join(picturePath,pictureFile[0])
+
+    return levels, levels_title, image, text
 
 
 

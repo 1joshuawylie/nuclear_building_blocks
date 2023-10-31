@@ -1,0 +1,60 @@
+/* For screens with a width greater than 600px */
+@media (min-width: 601px) {
+    .primary_container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    .tips {
+        width: 25%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .nuclear_chart {
+        width: 50%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .levels {
+        width: 25%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+}
+
+@media (min-width: 601px) {
+    .secondary_container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    .submission_links {
+        width: 25%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .submission_notes {
+        width: 75%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+}
+
+/* For screens with a width less than 600px */
+@media (max-width: 600px) {
+    .nuclear_chart {
+        width: 100%; /* Adjust the width as needed */
+    }
+    .tips {
+        width: 100%; /* Adjust the width as needed */
+    }
+    .levels {
+        width: 100%; /* Adjust the width as needed */
+    }
+}
+
+@media (max-width: 600px) {
+    .submission_links {
+        width: 100%; /* Adjust the width as needed */
+    }
+    .submission_notes {
+        width: 100%; /* Adjust the width as needed */
+    }
+}
