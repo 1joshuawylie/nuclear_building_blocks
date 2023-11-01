@@ -33,7 +33,7 @@ import plotly.graph_objects as go
 from dash import html, dcc
 import dash_bootstrap_components as dbc
 
-levelGroupColors = ['rgba(75, 158, 214, 0.5)','rgba(255, 157, 36, 0.5)','rgba(163, 42, 205, 0.5)','rgba(200, 0, 4, 0.5)']
+levelGroupColors = ['rgba(75, 158, 214, 0.6)','rgba(255, 157, 36, 0.6)','rgba(163, 42, 205, 0.6)','rgba(200, 0, 4, 0.6)']
 
 def plot_separation_energy(fig_,s_,xMin,xMax,nucType,nucColor):
     '''
@@ -60,7 +60,7 @@ def plot_separation_energy(fig_,s_,xMin,xMax,nucType,nucColor):
             mode='lines',
             hoverinfo='skip', # Don't provide any hover info or hover interaction from this line
             name=f'{nucType} Separation Energy',
-            line=dict(color=nucColor,dash='dash'),
+            line=dict(color=nucColor,dash='dash',width=5),
         ))
     except:
         return None
@@ -76,7 +76,7 @@ def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
     if pd.isna(half_life_units): # Find states with unknown half life and set them to a grey line to indicate uncertain status
         fig_.add_shape(type='line',
                        x0=x_-xstep, x1=x_+xstep, y0=E, y1=E,
-                       line_color='grey')
+                       line_color='white')
         return fig_ # Unknown half life wouldn't require any extra decay width box so we end early
     else: # Remaining 
         fig_.add_shape(type='line',
@@ -89,85 +89,85 @@ def drawLevel(fig_,x_,E,half_life,half_life_units,xstep=0.25):
             G = float(half_life) * convertEV[half_life_units.replace(' ','')]
             fig_.add_shape(type='rect',
                            x0=x_-xstep, x1=x_+xstep, y0=E-G/2, y1=E+G/2,
-                           line_width=0, fillcolor='grey', opacity=0.25)
+                           line_width=0, fillcolor='#e8e9eb', opacity=0.25)
     return fig_
 
-def plot_level_scheme(groundStateData,levelData):
-    '''
-    Given two pandas DataFrames, groundStateData and levelData, which must contain the columns:
+# def plot_level_scheme(groundStateData,levelData):
+#     '''
+#     Given two pandas DataFrames, groundStateData and levelData, which must contain the columns:
     
-    groundStateData:
-     - z:  Proton number
-     - n:  Neutron number
-     - sp: Proton Separation Energies
-     - sn: Neutron Separation Energies
+#     groundStateData:
+#      - z:  Proton number
+#      - n:  Neutron number
+#      - sp: Proton Separation Energies
+#      - sn: Neutron Separation Energies
     
-    levelData:
-     - z:         Proton number
-     - n:         Neutron number
-     - jp:        J^\pi value associated with each level
-     - energy:    Energy of level
-     - half_life: Half life of nucleus (Used to get those levels with sizeable decay widths on the order of keV or greater for band plot)
-     - unit_hl:   Units of half life used to determine which decay widths are sizeable (and worth plotting the decay width band)
+#     levelData:
+#      - z:         Proton number
+#      - n:         Neutron number
+#      - jp:        J^\pi value associated with each level
+#      - energy:    Energy of level
+#      - half_life: Half life of nucleus (Used to get those levels with sizeable decay widths on the order of keV or greater for band plot)
+#      - unit_hl:   Units of half life used to determine which decay widths are sizeable (and worth plotting the decay width band)
     
-    Returns a Plotly figure of all levels with hover-able information
-    '''
-    # Get initial data
-    n, z = levelData['n'].unique()[0], levelData['z'].unique()[0]
+#     Returns a Plotly figure of all levels with hover-able information
+#     '''
+#     # Get initial data
+#     n, z = levelData['n'].unique()[0], levelData['z'].unique()[0]
 
-    fig_ = go.Figure()
-    # We want positions according to the J^\pi value
-    unique_names = levelData['jp'].unique()
-    x = np.arange(len(unique_names))
-    # To plot each J^\pi level in their own columns, we will save them as dictionaries with x values e.g. {'0+':0,'1+':1} and {0:'0+',1:'1+'}
-    name_to_position = {}
-    position_to_name = {}
-    for name, position in zip(unique_names, x):
-        name_to_position[name] = position
-        position_to_name[position] = name
+#     fig_ = go.Figure()
+#     # We want positions according to the J^\pi value
+#     unique_names = levelData['jp'].unique()
+#     x = np.arange(len(unique_names))
+#     # To plot each J^\pi level in their own columns, we will save them as dictionaries with x values e.g. {'0+':0,'1+':1} and {0:'0+',1:'1+'}
+#     name_to_position = {}
+#     position_to_name = {}
+#     for name, position in zip(unique_names, x):
+#         name_to_position[name] = position
+#         position_to_name[position] = name
 
-    # Draw each isotope level
-    for i, row in levelData.iterrows():
-        fig_ = drawLevel(fig_,name_to_position[row['jp']],row['energy'],row['half_life'],row['unit_hl'])
-        levelData.loc[i,'x_index'] = name_to_position[row['jp']]
+#     # Draw each isotope level
+#     for i, row in levelData.iterrows():
+#         fig_ = drawLevel(fig_,name_to_position[row['jp']],row['energy'],row['half_life'],row['unit_hl'])
+#         levelData.loc[i,'x_index'] = name_to_position[row['jp']]
     
-    # Scatter plot of positions for hover information
-    fig_.add_trace(go.Scatter(
-        x=levelData['x_index'],
-        y=levelData['energy'],
-        mode="markers",
-        name='States',
-        marker_size=0.001,
-        showlegend=False
-    ))
+#     # Scatter plot of positions for hover information
+#     fig_.add_trace(go.Scatter(
+#         x=levelData['x_index'],
+#         y=levelData['energy'],
+#         mode="markers",
+#         name='States',
+#         marker_size=0.001,
+#         showlegend=False
+#     ))
 
-    # Plot Separation energies
-    isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)]
+#     # Plot Separation energies
+#     isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)]
 
-    full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
-    # Get current axes ranges
-    xAxisRange = full_fig.layout.xaxis.range
-    yAxisRange = full_fig.layout.yaxis.range
-    # Set new axes ranges
-    fig_.update_xaxes(range=[min(xAxisRange)-0.25,max(xAxisRange)+0.25])
-    fig_.update_yaxes(range=[min(yAxisRange)-0.1,max(yAxisRange)+0.1])
+#     full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
+#     # Get current axes ranges
+#     xAxisRange = full_fig.layout.xaxis.range
+#     yAxisRange = full_fig.layout.yaxis.range
+#     # Set new axes ranges
+#     fig_.update_xaxes(range=[min(xAxisRange)-0.25,max(xAxisRange)+0.25])
+#     fig_.update_yaxes(range=[min(yAxisRange)-0.1,max(yAxisRange)+0.1])
 
-    # Plot separation energies
-    sn = isotope['sn'].values[0] # Still in string format! Handle with function below...
-    sp = isotope['sp'].values[0] # Still in string format! Handle with function below...
-    plot_separation_energy(fig_,sn,'Neutron','blue')
-    plot_separation_energy(fig_,sp,'Proton','red')
+#     # Plot separation energies
+#     sn = isotope['sn'].values[0] # Still in string format! Handle with function below...
+#     sp = isotope['sp'].values[0] # Still in string format! Handle with function below...
+#     plot_separation_energy(fig_,sn,'Neutron','blue')
+#     plot_separation_energy(fig_,sp,'Proton','red')
 
-    # Display legends, axis name changes
-    fig_.update_legends()
-    fig_.update_layout(legend=dict(orientation='h',
-                                   yanchor="bottom",y=1.02,
-                                   xanchor="right",x=1))
-    fig_.update_xaxes(title_text='State',
-                      ticktext=list(position_to_name.values()),
-                      tickvals=list(position_to_name.keys()))
-    fig_.update_yaxes(title_text='Energy (MeV)')
-    return fig_
+#     # Display legends, axis name changes
+#     fig_.update_legends()
+#     fig_.update_layout(legend=dict(orientation='h',
+#                                    yanchor="bottom",y=1.02,
+#                                    xanchor="right",x=1))
+#     fig_.update_xaxes(title_text='State',
+#                       ticktext=list(position_to_name.values()),
+#                       tickvals=list(position_to_name.keys()))
+#     fig_.update_yaxes(title_text='Energy (MeV)')
+#     return fig_
 
 def drawGroupBox(fig_,minX,maxX,minE,maxE,groupID):
     fig_.add_trace(go.Scatter(
@@ -267,82 +267,100 @@ def plot_simplified_level_scheme(groundStateData,levelData,num_clusters=3,max_le
         position_to_name[position] = name
 
     # Start plotting levels like normal...
+    # try:
+    fig_data = go.Figure() # Stores data separate from background groupings to avoid weird trace overlaps with boxes making things not-visible
+    # If only one level with nan energy, pass error to exception display case
+    if (len(levels['energy'])==1) and (str(levels['energy'].values[0])=='nan'):
+        raise ValueError
+    # Draw each isotope level by iterating through each row of our levels
+    for i, row in levels.iterrows():
+        # Call function to draw level (note, no hover info is assigned to these levels when just drawing lines)
+        fig_data = drawLevel(fig_data,name_to_position[row['jp']],row['energy'],row['half_life'],row['unit_hl'])
+
+    # Plot Separation energies
+    isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)]
+
+    # Plot separation energies
+    sn = isotope['sn'].values[0] # Still in string format! Handle with function below...
+    sp = isotope['sp'].values[0] # Still in string format! Handle with function below...
+    plot_separation_energy(fig_data,sn, xMin, xMax,'Neutron','blue')
+    plot_separation_energy(fig_data,sp, xMin, xMax,'Proton','red')
+
+    full_fig = fig_data.full_figure_for_development() # Gets information about the current figure in workable python form
+    # Get current y-axis ranges
+    yAxisRange = full_fig.layout.yaxis.range
+    rangeE = max(yAxisRange) - min(yAxisRange) # Find total energy range
+    yMin, yMax = min(yAxisRange)-rangeE/10,max(yAxisRange)+rangeE/10 # set new y-axis values with offset according to extra energy range padding
+    # Set new axes ranges
+    fig_data.update_xaxes(range=[xMin, xMax])
+    fig_data.update_yaxes(range=[yMin, yMax])
+
+    # Get number of levels
+    nlevels = len(levels['energy'])
+
+    # In the event we have fewer levels than clusters, the following KMeans code would fail, so we check and adjust
+    if nlevels < num_clusters:
+        num_clusters = nlevels # Set cluster number equal to number of levels if too many clusters requested
+    
+    fig_clusters = go.Figure() # Make another figure to allow for nice overlay to our main figure (avoid weird overlaps) of boxes and scatter points
+    # Use ChatGPT assisted function to find clusters of energies
+    clusters = find_best_clusters(levels['energy'].to_numpy(),num_clusters=num_clusters)
+    # Sort clusters so they move in increasing order of energy
+    clusters = sorted(clusters,key=sorted)
+    # Iterate through cluster list to plot the boxes for each cluster
+    for i in range(len(clusters)):
+        # The following if statements are to set box height for each cluster considered
+        if i == 0 and len(clusters) > 1: # Starting when we have more than one cluster
+            minE = yMin
+            maxE = max(clusters[i]) + (min(clusters[i+1]) - max(clusters[i]))/2
+        elif i==0 and len(clusters) == 1: # Starting when we have exactly one cluster
+            minE = yMin
+            maxE = yMax
+        elif i == len(clusters)-1: # Adjusting box size at last cluster
+            minE = max(clusters[i-1]) + (min(clusters[i]) - max(clusters[i-1]))/2
+            maxE = yMax
+        else: # intermediate cluster boundaries
+            minE = max(clusters[i-1]) + (min(clusters[i]) - max(clusters[i-1]))/2
+            maxE = max(clusters[i]) + (min(clusters[i+1]) - max(clusters[i]))/2
+        
+        # Draw cluster boxes
+        drawGroupBox(fig_clusters,xMin,xMax,minE,maxE,i)
+
+    # Combine fig_data and fig_clusters to ensure proper overlay of data on cluster groups
+    # print(fig_data)
+    # print(fig_clusters['data']+fig_data['data'])
+    # fig_ = go.Figure(data=fig_clusters['data']+fig_data['data']+fig_data['data'])
     fig_ = go.Figure()
 
-    try:
-        # If only one level with nan energy, pass error to exception display case
-        if (len(levels['energy'])==1) and (str(levels['energy'].values[0])=='nan'):
-            raise ValueError
-        # Draw each isotope level by iterating through each row of our levels
-        for i, row in levels.iterrows():
-            # Call function to draw level (note, no hover info is assigned to these levels when just drawing lines)
-            fig_ = drawLevel(fig_,name_to_position[row['jp']],row['energy'],row['half_life'],row['unit_hl'])
+    # Add cluster scatter data first to put at bottom layer of the plot
+    for trace in fig_clusters['data']:
+        fig_.add_trace(trace)
+    # Add scatter plot data from fig_data next to layer over the clusters
+    for trace in fig_data['data']:
+        fig_.add_trace(trace)
+    # Add level line data from fig_data next to layer over the clusters and other scatter data
+    for shape in fig_data['layout']['shapes']:
+        fig_.add_shape(shape)
 
-        # Plot Separation energies
-        isotope = groundStateData[(groundStateData['n']==n)&(groundStateData['z']==z)]
+    # Display legends, axis name changes
+    fig_.update_legends()
+    fig_.update_layout(legend=dict(orientation='h',
+                                yanchor="bottom",y=1.0,
+                                xanchor="right",x=1))
+    fig_.update_xaxes(title_text='State',
+                    ticktext=list(position_to_name.values()),
+                    tickvals=list(position_to_name.keys()))
+    fig_.update_yaxes(title_text='Energy (MeV)')
+    return fig_
+    # except: # In the event we have only one level and it's nan, we will need to print an exception
+    #     fig_ = go.Figure()
 
-        # Plot separation energies
-        sn = isotope['sn'].values[0] # Still in string format! Handle with function below...
-        sp = isotope['sp'].values[0] # Still in string format! Handle with function below...
-        plot_separation_energy(fig_,sn, xMin, xMax,'Neutron','blue')
-        plot_separation_energy(fig_,sp, xMin, xMax,'Proton','red')
-
-        full_fig = fig_.full_figure_for_development() # Gets information about the current figure in workable python form
-        # Get current y-axis ranges
-        yAxisRange = full_fig.layout.yaxis.range
-        rangeE = max(yAxisRange) - min(yAxisRange) # Find total energy range
-        yMin, yMax = min(yAxisRange)-rangeE/10,max(yAxisRange)+rangeE/10 # set new y-axis values with offset according to extra energy range padding
-        # Set new axes ranges
-        fig_.update_xaxes(range=[xMin, xMax])
-        fig_.update_yaxes(range=[yMin, yMax])
-
-        # Get number of levels
-        nlevels = len(levels['energy'])
-
-        # In the event we have fewer levels than clusters, the following KMeans code would fail, so we check and adjust
-        if nlevels < num_clusters:
-            num_clusters = nlevels # Set cluster number equal to number of levels if too many clusters requested
+    #     wrapped_text = customwrap("Wow, it looks like there isn't any information available on this! Scientists have observed this nucleus, and are working very hard to get more information!", width=30)
+    #     fig_.add_annotation(x=1,y=1,
+    #                         text=wrapped_text,
+    #                         showarrow=False)
         
-        # Use ChatGPT assisted function to find clusters of energies
-        clusters = find_best_clusters(levels['energy'].to_numpy(),num_clusters=num_clusters)
-        # Sort clusters so they move in increasing order of energy
-        clusters = sorted(clusters,key=sorted)
-        # Iterate through cluster list to plot the boxes for each cluster
-        for i in range(len(clusters)):
-            # The following if statements are to set box height for each cluster considered
-            if i == 0 and len(clusters) > 1: # Starting when we have more than one cluster
-                minE = yMin
-                maxE = max(clusters[i]) + (min(clusters[i+1]) - max(clusters[i]))/2
-            elif i==0 and len(clusters) == 1: # Starting when we have exactly one cluster
-                minE = yMin
-                maxE = yMax
-            elif i == len(clusters)-1: # Adjusting box size at last cluster
-                minE = max(clusters[i-1]) + (min(clusters[i]) - max(clusters[i-1]))/2
-                maxE = yMax
-            else: # intermediate cluster boundaries
-                minE = max(clusters[i-1]) + (min(clusters[i]) - max(clusters[i-1]))/2
-                maxE = max(clusters[i]) + (min(clusters[i+1]) - max(clusters[i]))/2
-            
-            # Draw cluster boxes
-            drawGroupBox(fig_,xMin,xMax,minE,maxE,i)
-
-        # Display legends, axis name changes
-        fig_.update_legends()
-        fig_.update_layout(legend=dict(orientation='h',
-                                    yanchor="bottom",y=1.0,
-                                    xanchor="right",x=1))
-        fig_.update_xaxes(title_text='State',
-                        ticktext=list(position_to_name.values()),
-                        tickvals=list(position_to_name.keys()))
-        fig_.update_yaxes(title_text='Energy (MeV)')
-        return fig_
-    except: # In the event we have only one level and it's nan, we will need to print an exception
-        wrapped_text = customwrap("Wow, it looks like there isn't any information available on this! Scientists have observed this nucleus, and are working very hard to get more information!", width=30)
-        fig_.add_annotation(x=1,y=1,
-                            text=wrapped_text,
-                            showarrow=False)
-        
-        # Set new axes ranges
-        fig_.update_xaxes(range=[0, 2],showticklabels=False,showgrid=False)
-        fig_.update_yaxes(range=[0, 2],showticklabels=False,showgrid=False)
-        return fig_
+    #     # Set new axes ranges
+    #     fig_.update_xaxes(range=[0, 2],showticklabels=False,showgrid=False)
+    #     fig_.update_yaxes(range=[0, 2],showticklabels=False,showgrid=False)
+    #     return fig_

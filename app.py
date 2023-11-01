@@ -251,21 +251,24 @@ tips = html.Div(
                         dbc.ListGroupItem(
                             'The chart starts with the maximum view setting of 20 protons and 28 neutrons.'+
                             ' Be sure to click the \"Nuclear Chart Options\" button to play around with the '+
-                            'chart type and number of protons and neutrons viewed.'
+                            'chart type and number of protons and neutrons viewed.',
+                            color='secondary',
                         ),
                         dbc.ListGroupItem(
                             'All of the nuclei on the nuclear chart have been acually observed by scientists!'+
-                            ' That being said, we need your help to build (\"discover\") a block version of each one.'
+                            ' That being said, we need your help to build (\"discover\") a block version of each one.',
+                            color='secondary',
                         ),
                         dbc.ListGroupItem(
                             'Click on a specific nucleus to see its level scheme on the left panel below and a '+
                             'picture of its ground state which was built by another user on the right below. It\'s '+
                             'possible that no one has managed to build that state or submitted their \"discovery\", '+
-                            'so if that\'s the case consider submitting your own construction!'
+                            'so if that\'s the case consider submitting your own construction!',
+                            color='secondary',
                         ),
                         # Add code for more Tips here...
                     ],
-                    numbered=True
+                    numbered=True,
                 ),
                 html.Br(),
                 html.Div(
@@ -275,7 +278,7 @@ tips = html.Div(
                     ]
                 ),
                 # Add code for more buttons or other options here...
-            ]
+            ],color='secondary'
         )
     ], className='tips',
 )
@@ -502,7 +505,7 @@ def display_hover(hoverData):
             html.P(['Images are a general depiction of the decay process.' +
                     ' They may only show an example nucleus in the decay, not the current viewed nucleus'],
                    style={'font-size':'12px'}), # Tiny disclaimer at the bottom
-        ],style={'width': '300px', 'white-space': 'normal'},color='primary', inverse=True)
+        ],style={'width': '300px', 'white-space': 'normal'},color='secondary', inverse=True)
     ]
 
     # # To avoid being cutoff by the edge of the chart, move the direction the hover box appears

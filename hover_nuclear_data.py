@@ -18,7 +18,7 @@ decayImgSrc = {
     '2P':'assets/decay_modes/2P.png',
     'A':'assets/decay_modes/A.png',
     'nan':'assets/decay_modes/unknown.png',
-    'Stable':'assets/decay_modes/stable4.png',
+    'Stable':'assets/decay_modes/stable.png',
 }
 # Dictionary of shown information on hover for the decay mode
 decayName = {
