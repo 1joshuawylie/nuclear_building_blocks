@@ -14,7 +14,6 @@ import os
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output, State, callback, no_update
 from dash import ctx # Used for identifying callback_context
-import dash_daq as daq
 import dash_bootstrap_components as dbc
 import json
 # from dash_breakpoints import WindowBreakpoints
