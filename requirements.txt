@@ -1,0 +1,8 @@
+# Core
+dash>=1.0.0
+
+# Additional
+numpy>=1.16.2
+pandas>=0.24.2
+dash-bootstrap-components==1.0.2
+plotly>=5.13.0
