@@ -1,4 +1,5 @@
 # Core
+gunicorn
 dash>=1.0.0
 
 # Additional
