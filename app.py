@@ -107,7 +107,7 @@ plotly_template.layout = {
 #         file.write(str(plotly_template.layout[item])+'\n')
 
 app = Dash(__name__,external_stylesheets=[theme])
-
+server = app.server
 ######################################################################
 ########## Dash layout components relating to Nuclear Chart ##########
 ######################################################################
