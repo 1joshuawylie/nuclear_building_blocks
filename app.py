@@ -28,9 +28,9 @@ import hover_nuclear_data as hnd
 
 # Call ground state information from IAEA
 ground_state = iaea.NuChartGS()
-currentData = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
-# Call specific level scheme
-isotopeLevels = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
+# currentData = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
+# # Call specific level scheme
+# isotopeLevels = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
 
 #%%
 # Functions for this file only
@@ -130,8 +130,8 @@ chart_options = dbc.Offcanvas(
             [
                 dbc.Label('Show Proton Range:'),
                 dcc.Slider(
-                    ground_state['z'].min(),
-                    ground_state['z'].max(),
+                    min=ground_state['z'].min(),
+                    max=ground_state['z'].max(),
                     step=None,
                     id='proton_axis_slider',
                     # value=ground_state['z'].max()
@@ -143,8 +143,8 @@ chart_options = dbc.Offcanvas(
             [
                 dbc.Label('Show Neutron Range:'),
                 dcc.Slider(
-                    ground_state['n'].min(),
-                    ground_state['n'].max(),
+                    min=ground_state['n'].min(),
+                    max=ground_state['n'].max(),
                     step=None,
                     id='neutron_axis_slider',
                     # value=ground_state['n'].max()
@@ -229,7 +229,7 @@ header = html.Div(
         ##### Information in App Header #####
         dbc.Card(
             [
-                html.H1('Welcome to the Interactive Nuclear Chart!'),
+                html.H1('Welcome to the Interactive Nuclear Chart! hello'),
                 html.Hr(),
                 html.H5('If you haven\'t already played our game, check it out here!'),
                 # Add code here...
@@ -353,6 +353,8 @@ app.layout = html.Div([
             # Add additional tabs here...
         ]
     ),
+    dcc.Store(id='current_data'),
+    dcc.Store(id='isotope_levels'),
     html.Link(rel="stylesheet", href="layout_styles.css")
 ])
 
@@ -373,19 +375,28 @@ def toggle_offcanvas(n1, is_open):
     return is_open
 
 ##### Nuclear Chart callbacks #####
+# Selecting a subset of data
+@callback(
+    Output('current_data','data'),
+    Input('neutron_axis_slider','value'),
+    Input('proton_axis_slider','value'),
+)
+def update_chart_data(neutron_slider,proton_slider):
+    # Filter current data to the slider callbacks
+    currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:]
+
+    return currentData.to_json(orient='split')
+
+# Selecting Toggles and other chart modifications
 @callback(
     Output('nuclear_chart','figure'),
     Output('nuclear_chart_title','children'),
     Input('chart_type','value'),
-    Input('neutron_axis_slider','value'),
-    Input('proton_axis_slider','value'),
+    Input('current_data','data'),
     Input('chart_toggle_options','value')
 )
-def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_options):
-    global currentData # Use global data to allow other functions easy access. Might need to change later...
-    # Filter current data to the slider callbacks
-    currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:]
-
+def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
+    currentData = pd.read_json(jsonCurrentData,orient='split')
     # Additional axes offsets to show magic number tiles later
     xoffset, yoffset = 2, 2.5
     xrange = [min(currentData['n'])-xoffset, max(currentData['n'])+0.5]
@@ -437,6 +448,8 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
             y=points,
             mode="lines",
             name='N=Z Line',
+            hoverinfo='skip',
+            line=dict(color='#5eb588',width=5),
             showlegend=False
         ))
     if 2 in toggle_options:
@@ -450,9 +463,11 @@ def update_chart_type(chart_type_name,neutron_slider,proton_slider,toggle_option
     Output("chart_tooltip", "children"), # Returns 'children' property specifically used in dcc.Tooltip()
     Output("chart_tooltip", "direction"), # Returns 'direction' property specifically used in dcc.Tooltip()
     Input("nuclear_chart", "hoverData"),
+    Input('neutron_axis_slider','value'),
+    Input('current_data','data'),
 )
-def display_hover(hoverData):
-    global currentData
+def display_hover(hoverData,neutron_slider,jsonCurrentData):
+    # global currentData
     if hoverData is None:
         return False, no_update, no_update, no_update
 
@@ -460,12 +475,19 @@ def display_hover(hoverData):
     pt = hoverData["points"][0]
     bbox = pt["bbox"]
 
+    # print('neutron_slider = ',neutron_slider)
+    # print('hoverData = ',hoverData)
+    # print('pt = \n',pt)
+    # print('bbox = \n',bbox)
+
     # Get data for current hover item
+    currentData = pd.read_json(jsonCurrentData,orient='split')
     df_row = currentData[(currentData['n']==pt['x'])&(currentData['z']==pt['y'])]
     # For no data, Return nothing
     if df_row.empty:
         return False, no_update, no_update, no_update
     
+    # print('df_row = ',df_row)
 
     img_src = hnd.decayImgSrc[str(df_row['common_decays'].values[0])] # Get decay image location
     A =  int(df_row['n'].values[0])+int(df_row['z'].values[0]) # Get A value
@@ -509,7 +531,8 @@ def display_hover(hoverData):
 
     # # To avoid being cutoff by the edge of the chart, move the direction the hover box appears
     direction = 'right'
-    midPt = min(currentData['n']) + (max(currentData['n']) - min(currentData['n'])) / 2
+    # midPt = min(neutron_slider) + (max(neutron_slider) - min(neutron_slider)) / 2
+    midPt = neutron_slider / 2
     if pt['x'] > midPt:
         direction = 'left'
     return True, bbox, children, direction
@@ -521,32 +544,30 @@ def display_hover(hoverData):
     Output('level_scheme_title','children'),
     Output('built_nucleus','src'),
     Output('built_nucleus_title','children'),
+    Output('isotope_levels','data'),
     Input('nuclear_chart','clickData'),
-    Input('level_scheme','clickData')
+    Input('level_scheme','clickData'),
+    Input('isotope_levels','data'),
 )
-def update_level_scheme(chartClickData, levelClickData):
-    global isotopeLevels # Modify global variable of isotope levels
+def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
+    '''
+    This callback controls the level scheme and which built nuclei to display.
+
+    1) We start by getting all the other input callback data
+    2) We check if this is on initialization (all callback input data is None) and display defaults
+    3) We check if callback was triggered by nuclear_chart -> which updates the built nuclear state considered and its levels
+    4) We check if callback was triggered by level_scheme -> which updates only the built nuclear state
+    '''
+    # global isotopeLevels # Modify global variable of isotope levels
     dumpClick = json.loads(json.dumps(chartClickData)) # json info from clicking nuclear chart
     dumpHover = json.loads(json.dumps(levelClickData)) # json info from hovering over level scheme levels or group
     triggerID = ctx.triggered_id # Determine the type of id that was triggered (hover, click, or None)
 
-    # In the case someone clicks not on a valid nucleus on the nuclear chart, we don't send any updates
-    if (triggerID == 'nuclear_chart') and (dumpClick['points'][0]['z'] == None):
-        return no_update, no_update, no_update, no_update
+    # print('triggerID = ',triggerID)
+    # print('update_level_scheme: dumpClick = \n',dumpClick)
+    # print('update_level_scheme: dumpHover = \n',dumpHover)
+    # print('update_level_scheme: jsonIsotopeLevels = \n',jsonIsotopeLevels)
 
-    # When we click on a new nucleus on the nuclear chart, load the corresponding level data, this avoids unnecessary reloads
-    if triggerID == 'nuclear_chart':
-        nucChartDump = dumpClick['points'][0] 
-        n, z = nucChartDump['x'], nucChartDump['y']
-        element = ground_state.loc[(ground_state['z']==z)] # Get element chain data
-        isotope = element[element['n']==n] # Get specific isotope data
-        symbol = isotope['symbol'].values[0] # Get corresponding symbol name for element
-        A = n + z
-        
-        # Get level data and plot levels
-        isotopeLevels = iaea.NuChartLevels(A,symbol)
-    
-    #### Loading Images of Built nuclei ####
     imagePath = 'assets/'
     # Default don't show a level scheme
     if triggerID is None:
@@ -570,9 +591,29 @@ def update_level_scheme(chartClickData, levelClickData):
         # Default header information 
         text = html.H6(['Please select a nucleus to see a block version of it:'])
         image = imagePath + 'logo.png'
+        return levels, levels_title, image, text, no_update
 
+    # In the case someone clicks on an invalid nucleus on the nuclear chart, we don't send any updates
+    if (triggerID == 'nuclear_chart') and (dumpClick['points'][0]['z'] == None):
+        return no_update, no_update, no_update, no_update, no_update
+
+    # When we click on a new nucleus on the nuclear chart, load the corresponding level data, this avoids unnecessary reloads
+    if triggerID == 'nuclear_chart':
+        nucChartDump = dumpClick['points'][0] 
+        n, z = nucChartDump['x'], nucChartDump['y']
+        element = ground_state.loc[(ground_state['z']==z)] # Get element chain data
+        isotope = element[element['n']==n] # Get specific isotope data
+        symbol = isotope['symbol'].values[0] # Get corresponding symbol name for element
+        A = n + z
+        
+        # Get level data and plot levels
+        isotopeLevels = iaea.NuChartLevels(A,symbol)
+    else:
+        isotopeLevels = pd.read_json(jsonIsotopeLevels,orient='split')
+    
+    #### Loading Images of Built nuclei ####
     # When a nucleus is selected on the nuclear chart, update level scheme and image to ground state '_0'
-    elif triggerID == 'nuclear_chart':
+    if triggerID == 'nuclear_chart':
         ### Level scheme ###
         # Note, we can also print the detailed level scheme for each level using function plot_level_scheme()
         levels = lsdf.plot_simplified_level_scheme(ground_state,isotopeLevels)
@@ -627,7 +668,7 @@ def update_level_scheme(chartClickData, levelClickData):
                     'Discovered by: ',discovererNames])
             image = os.path.join(picturePath,pictureFile[0])
 
-    return levels, levels_title, image, text
+    return levels, levels_title, image, text, isotopeLevels.to_json(orient='split')
 
 
 

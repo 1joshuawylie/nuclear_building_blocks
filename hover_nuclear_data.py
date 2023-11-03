@@ -18,7 +18,9 @@ decayImgSrc = {
     '2P':'assets/decay_modes/2P.png',
     'A':'assets/decay_modes/A.png',
     'nan':'assets/decay_modes/unknown.png',
+    'None':'assets/decay_modes/unknown.png',
     'Stable':'assets/decay_modes/stable.png',
+    'SF':'assets/decay_modes/SF.png',
 }
 # Dictionary of shown information on hover for the decay mode
 decayName = {
@@ -31,7 +33,9 @@ decayName = {
     '2P':'Decays mainly by: 2 Proton Emission',
     'A':['Decays mainly by: \u03B1 Decay'],
     'nan':'Unknown Decay Mode',
-    'Stable':'Stable'
+    'Stable':'Stable',
+    'SF':'Decays mainly by: Spontaneous Fission',
+    'None':'Unknown Decay Mode'
 }
 
 element_symbols = {
