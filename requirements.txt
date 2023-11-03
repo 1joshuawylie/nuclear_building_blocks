@@ -9,3 +9,4 @@ dash-bootstrap-components
 dash-bootstrap-templates
 plotly>=5.13.0
 scikit-learn
+kaleido
