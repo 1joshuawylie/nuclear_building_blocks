@@ -296,18 +296,23 @@ def show_user_made_nuclei(fig_,chartData):
     listNuclei = [ln.split('_')[0] for ln in listPictures]
     listASym = [separateSymAndA(s) for s in listNuclei]
     uniqueASym = pd.DataFrame(listASym,columns=['A','symbol'])
-    noDuplicatesASym = uniqueASym.drop_duplicates(keep='first')
+    noDuplicatesASym = uniqueASym.drop_duplicates(keep='first').copy()
+
+    # create a dictionary of column names and the value you want
+    d = dict.fromkeys(['z','n'], 0)
+    noDuplicatesASym.assign(**d)
+
+    zlist = []
 
     # Get z for uniqueASym which removed duplicate entries from ground state data
     for i, row in noDuplicatesASym.iterrows():
-        rowGS = chartData[chartData['symbol']==row['symbol']]
-        # print(rowGS['z'].unique().size==0)
-        if rowGS['z'].unique().size==0:
-            print('continuing')
+        zs = chartData.loc[chartData['symbol']==row['symbol'],'z'].to_numpy()
+        if len(zs)==0:
             continue
         
-        noDuplicatesASym.loc[i,'z'] = rowGS['z'].unique()
-    noDuplicatesASym['n'] = noDuplicatesASym['A'] - noDuplicatesASym['z']
+        zlist.append(zs[0])
+    noDuplicatesASym.loc[:,'z'] = np.array(zlist)
+    noDuplicatesASym.loc[:,'n'] = noDuplicatesASym['A'].to_numpy() - noDuplicatesASym['z'].to_numpy()
     
     fig_.add_trace(go.Scatter(
         x=noDuplicatesASym['n']+0.25, # Offset to place markers in the corner of the heatmap tiles

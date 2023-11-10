@@ -7,6 +7,7 @@ Written by:
 
 # Import common packages
 import pandas as pd
+from io import StringIO # For handling new json format in pandas
 import numpy as np
 import os
 
@@ -26,11 +27,12 @@ import nuclear_chart_display_types as ncdt
 import level_scheme_display_functions as lsdf
 import hover_nuclear_data as hnd
 
+# Uncomment to see layout properties of chosen theme above to set text, background, etc. 
+from dash_bootstrap_templates import load_figure_template
+import plotly.io as pio
+
 # Call ground state information from IAEA
-ground_state = iaea.NuChartGS()
-# currentData = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
-# # Call specific level scheme
-# isotopeLevels = None # Initialize a global variable to cut down on the number of reloads required to look at a nucleus level scheme
+# ground_state = iaea.NuChartGS() # Since it's a universal dataset which is not modified, it's okay to leave here
 
 #%%
 # Functions for this file only
@@ -64,10 +66,6 @@ def getExcitationGroupString(string_):
 
 theme = dbc.themes.CYBORG
 theme_name = 'cyborg'
-
-# Uncomment to see layout properties of chosen theme above to set text, background, etc. 
-from dash_bootstrap_templates import load_figure_template
-import plotly.io as pio
 
 load_figure_template(theme_name)
 plotly_template = pio.templates[theme_name]
@@ -108,6 +106,30 @@ plotly_template.layout = {
 
 app = Dash(__name__,external_stylesheets=[theme])
 server = app.server
+app.title = 'Interactive Nuclear Chart'
+
+##########################################################################################
+#################### Subcomponents of Layout are presented first here ####################
+##################### See next section for overall Layout structure ######################
+##########################################################################################
+
+######################################################################
+############################## Header ################################
+######################################################################
+header = html.Div(
+    [
+        ##### Information in App Header #####
+        dbc.Card(
+            [
+                html.H1('Welcome to the Interactive Nuclear Chart! hello'),
+                html.Hr(),
+                html.H5('If you haven\'t already played our game, check it out here!'),
+                # Add code here...
+            ]
+        ),
+    ]
+)
+
 ######################################################################
 ########## Dash layout components relating to Nuclear Chart ##########
 ######################################################################
@@ -130,12 +152,14 @@ chart_options = dbc.Offcanvas(
             [
                 dbc.Label('Show Proton Range:'),
                 dcc.Slider(
-                    min=ground_state['z'].min(),
-                    max=ground_state['z'].max(),
+                    # min=ground_state['z'].min(),
+                    # max=ground_state['z'].max(),
+                    min=0,
+                    max=118,
                     step=None,
                     id='proton_axis_slider',
                     # value=ground_state['z'].max()
-                    value=21
+                    value=20
                 )
             ]),
         ##### Neutron Slider #####
@@ -143,8 +167,10 @@ chart_options = dbc.Offcanvas(
             [
                 dbc.Label('Show Neutron Range:'),
                 dcc.Slider(
-                    min=ground_state['n'].min(),
-                    max=ground_state['n'].max(),
+                    # min=ground_state['n'].min(),
+                    # max=ground_state['n'].max(),
+                    min=0,
+                    max=178,
                     step=None,
                     id='neutron_axis_slider',
                     # value=ground_state['n'].max()
@@ -193,51 +219,9 @@ chart_plot = dbc.Card(
     ], className='nuclear_chart', #color='dark'
 )
 
-#####################################################################
-########## Dash layout components relating to Level Scheme ##########
-#####################################################################
-levels_and_nucleus_images = html.Div(
-    [
-        ##### Level Scheme Plot #####
-        dbc.Card(
-            [
-                dbc.CardHeader(id='level_scheme_title'),
-                dcc.Graph(
-                    id='level_scheme',#,style={'height':'50vh'}
-                ),
-            ], #color='dark'
-        ),
-        ##### Load Images of User-Built Nuclei #####
-        dcc.Loading(id='loading_level_scheme',
-                    type='cube',
-                    children=[dbc.Card(
-                        [
-                            dbc.CardHeader(id='built_nucleus_title'),
-                            dbc.CardImg(id='built_nucleus')
-                        ], #color='dark'
-                    )]
-        )
-    ], className='levels',
-)
-
-
-##############################################################################
-########## Dash layout components relating to overall app structure ##########
-##############################################################################
-header = html.Div(
-    [
-        ##### Information in App Header #####
-        dbc.Card(
-            [
-                html.H1('Welcome to the Interactive Nuclear Chart! hello'),
-                html.Hr(),
-                html.H5('If you haven\'t already played our game, check it out here!'),
-                # Add code here...
-            ]
-        ),
-    ]
-)
-
+######################################################################
+############################## Tips ##################################
+######################################################################
 tips = html.Div(
     [
         ##### Information in "Tips" section #####
@@ -282,6 +266,37 @@ tips = html.Div(
     ], className='tips',
 )
 
+#####################################################################
+########## Dash layout components relating to Level Scheme ##########
+#####################################################################
+levels_and_nucleus_images = html.Div(
+    [
+        ##### Level Scheme Plot #####
+        dbc.Card(
+            [
+                dbc.CardHeader(id='level_scheme_title'),
+                dcc.Graph(
+                    id='level_scheme',#,style={'height':'50vh'}
+                ),
+            ], #color='dark'
+        ),
+        ##### Load Images of User-Built Nuclei #####
+        dcc.Loading(id='loading_level_scheme',
+                    type='cube',
+                    children=[dbc.Card(
+                        [
+                            dbc.CardHeader(id='built_nucleus_title'),
+                            dbc.CardImg(id='built_nucleus')
+                        ], #color='dark'
+                    )]
+        )
+    ], className='levels',
+)
+
+
+##########################################################################################
+################ Dash layout components relating to overall app structure ################
+##########################################################################################
 #########################################################
 ########## Dash layout structure for first tab ##########
 #########################################################
@@ -342,10 +357,14 @@ submissionsTab = html.Div(
 ################################################################
 ########## Begin defining actual Dash app information ##########
 ################################################################
-app.title = 'Interactive Nuclear Chart'
 
 app.layout = html.Div([
     header,
+    html.Div(
+        [
+            html.Button(id='load_ground_state_data',style=dict(display='none')),
+        ]
+    ),
     dbc.Tabs(
         [
             dbc.Tab(primaryTab, label='Interactive Chart'),
@@ -353,6 +372,7 @@ app.layout = html.Div([
             # Add additional tabs here...
         ]
     ),
+    dcc.Store(id='ground_state'),
     dcc.Store(id='current_data'),
     dcc.Store(id='isotope_levels'),
     html.Link(rel="stylesheet", href="layout_styles.css")
@@ -362,6 +382,21 @@ app.layout = html.Div([
 ######################################################################
 ########## Callbacks for interactive figures, options, etc. ##########
 ######################################################################
+
+##### Initial ground state data callback #####
+# Since all callbacks run on initialization, this should run only once
+@callback(
+    Output('ground_state','data'),
+    Input("load_ground_state_data", "n_clicks"),
+)
+def update_chart_data(n_clicks):
+    if n_clicks == None:
+        print('Running call to get ground state data...')
+        # Call ground state information from IAEA
+        ground_state = iaea.NuChartGS()
+        return ground_state.to_json(orient='split')
+    
+    return no_update
 
 ##### Offcanvas options callbacks #####
 @app.callback(
@@ -380,8 +415,10 @@ def toggle_offcanvas(n1, is_open):
     Output('current_data','data'),
     Input('neutron_axis_slider','value'),
     Input('proton_axis_slider','value'),
+    Input('ground_state','data'),
 )
-def update_chart_data(neutron_slider,proton_slider):
+def update_chart_data(neutron_slider,proton_slider,jsonGroundState):
+    ground_state = pd.read_json(StringIO(jsonGroundState),orient='split')
     # Filter current data to the slider callbacks
     currentData = ground_state.loc[(ground_state['n']<=neutron_slider)&(ground_state['z']<=proton_slider),:]
 
@@ -396,7 +433,7 @@ def update_chart_data(neutron_slider,proton_slider):
     Input('chart_toggle_options','value')
 )
 def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
-    currentData = pd.read_json(jsonCurrentData,orient='split')
+    currentData = pd.read_json(StringIO(jsonCurrentData),orient='split')
     # Additional axes offsets to show magic number tiles later
     xoffset, yoffset = 2, 2.5
     xrange = [min(currentData['n'])-xoffset, max(currentData['n'])+0.5]
@@ -481,7 +518,7 @@ def display_hover(hoverData,neutron_slider,jsonCurrentData):
     # print('bbox = \n',bbox)
 
     # Get data for current hover item
-    currentData = pd.read_json(jsonCurrentData,orient='split')
+    currentData = pd.read_json(StringIO(jsonCurrentData),orient='split')
     df_row = currentData[(currentData['n']==pt['x'])&(currentData['z']==pt['y'])]
     # For no data, Return nothing
     if df_row.empty:
@@ -540,16 +577,17 @@ def display_hover(hoverData,neutron_slider,jsonCurrentData):
 
 ##### Level Scheme callbacks #####
 @callback(
-    Output('level_scheme','figure'),
-    Output('level_scheme_title','children'),
-    Output('built_nucleus','src'),
-    Output('built_nucleus_title','children'),
-    Output('isotope_levels','data'),
-    Input('nuclear_chart','clickData'),
-    Input('level_scheme','clickData'),
-    Input('isotope_levels','data'),
+    Output('level_scheme','figure'),            # Constructed graph sent to level_scheme layout element
+    Output('level_scheme_title','children'),    # Constructed title children div layout element
+    Output('built_nucleus','src'),              # Constructed graph sent to built_nucleus layout element
+    Output('built_nucleus_title','children'),   # Constructed title children div layout element
+    Output('isotope_levels','data'),            # Store isotope levels as json data for current user session
+    Input('nuclear_chart','clickData'),         # Input data of selected nucleus from click on nuclear chart
+    Input('level_scheme','clickData'),          # Input data of selected level from click on level scheme
+    Input('isotope_levels','data'),             # Input json data of current list of levels (None if no isotope selected)
+    Input('current_data','data'),               # Current data subset of ground state data from nuclear chart
 )
-def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
+def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCurrentData):
     '''
     This callback controls the level scheme and which built nuclei to display.
 
@@ -564,13 +602,14 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
     triggerID = ctx.triggered_id # Determine the type of id that was triggered (hover, click, or None)
 
     # print('triggerID = ',triggerID)
-    # print('update_level_scheme: dumpClick = \n',dumpClick)
-    # print('update_level_scheme: dumpHover = \n',dumpHover)
-    # print('update_level_scheme: jsonIsotopeLevels = \n',jsonIsotopeLevels)
+    # print('dumpClick = \n',dumpClick)
+    # print('dumpHover = \n',dumpHover)
+    # print('jsonIsotopeLevels = \n',jsonIsotopeLevels)
+    # print('jsonCurrentData = \n',jsonCurrentData)
 
     imagePath = 'assets/'
     # Default don't show a level scheme
-    if triggerID is None:
+    if triggerID == 'current_data':
         ### Level scheme ###
         levels = go.Figure()
         levels.add_trace(go.Scatter(
@@ -596,12 +635,14 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
     # In the case someone clicks on an invalid nucleus on the nuclear chart, we don't send any updates
     if (triggerID == 'nuclear_chart') and (dumpClick['points'][0]['z'] == None):
         return no_update, no_update, no_update, no_update, no_update
+    
+    currentData = pd.read_json(StringIO(jsonCurrentData),orient='split')
 
     # When we click on a new nucleus on the nuclear chart, load the corresponding level data, this avoids unnecessary reloads
     if triggerID == 'nuclear_chart':
         nucChartDump = dumpClick['points'][0] 
         n, z = nucChartDump['x'], nucChartDump['y']
-        element = ground_state.loc[(ground_state['z']==z)] # Get element chain data
+        element = currentData.loc[(currentData['z']==z)] # Get element chain data
         isotope = element[element['n']==n] # Get specific isotope data
         symbol = isotope['symbol'].values[0] # Get corresponding symbol name for element
         A = n + z
@@ -609,14 +650,14 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
         # Get level data and plot levels
         isotopeLevels = iaea.NuChartLevels(A,symbol)
     else:
-        isotopeLevels = pd.read_json(jsonIsotopeLevels,orient='split')
+        isotopeLevels = pd.read_json(StringIO(jsonIsotopeLevels),orient='split')
     
     #### Loading Images of Built nuclei ####
     # When a nucleus is selected on the nuclear chart, update level scheme and image to ground state '_0'
     if triggerID == 'nuclear_chart':
         ### Level scheme ###
         # Note, we can also print the detailed level scheme for each level using function plot_level_scheme()
-        levels = lsdf.plot_simplified_level_scheme(ground_state,isotopeLevels)
+        levels = lsdf.plot_simplified_level_scheme(currentData,isotopeLevels)
         levels_title = html.H6(['Level Scheme for ',html.Sup(A),symbol])
 
         ### Built nucleus image ###
@@ -646,7 +687,7 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels):
 
         ### Level scheme ###
         # Note, we can also print the detailed level scheme for each level using function plot_level_scheme()
-        levels = lsdf.plot_simplified_level_scheme(ground_state,isotopeLevels)
+        levels = lsdf.plot_simplified_level_scheme(currentData,isotopeLevels)
         levels_title = html.H6(['Level Scheme for ',html.Sup(A),symbol])
 
         ### Built nucleus image ###
