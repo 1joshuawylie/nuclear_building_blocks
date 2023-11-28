@@ -531,7 +531,9 @@ def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
     Input('nuclear_chart','figure'),
 )
 def download_svg(n_clicks, chart):
-    if n_clicks is None:
+    changed_id = [p['prop_id'] for p in ctx.triggered][0]
+
+    if 'btn_svg_download' not in changed_id:
         return None
 
     # Convert Plotly figure to SVG
