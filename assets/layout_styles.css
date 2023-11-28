@@ -1,5 +1,5 @@
-/* For screens with a width greater than 600px */
-@media (min-width: 601px) {
+/* For screens with width greater than a landscape orientation iPad */
+@media (min-width: 1101px) {
     .primary_container {
         display: flex;
         flex-direction: row;
@@ -14,13 +14,56 @@
         width: 50%; /* Adjust the width as needed */
         display: inline-block; /* Display as inline block */
     }
-    .levels {
+    .levels_and_images {
         width: 25%; /* Adjust the width as needed */
         display: inline-block; /* Display as inline block */
     }
 }
 
-@media (min-width: 601px) {
+@media (min-width: 1101px) {
+    .secondary_container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    }
+    .submission_links {
+        width: 25%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .submission_notes {
+        width: 75%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+}
+
+/* For screens with width between a portrait orientation iPad and a landscape orientation iPad */
+@media (max-width: 1101px) and (min-width: 900px) {
+    /* .primary_container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: flex-start;
+    } */
+    .tips {
+        width: 50%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .nuclear_chart {
+        width: 50%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .levels {
+        width: 50%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .images {
+        width: 50%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+}
+
+@media (max-width: 1101px) and (min-width: 900px) {
     .secondary_container {
         display: flex;
         flex-direction: row;
@@ -38,7 +81,7 @@
 }
 
 /* For screens with a width less than 600px */
-@media (max-width: 600px) {
+@media (max-width: 900px) {
     .nuclear_chart {
         width: 100%; /* Adjust the width as needed */
     }
@@ -47,10 +90,15 @@
     }
     .levels {
         width: 100%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
+    }
+    .images {
+        width: 100%; /* Adjust the width as needed */
+        display: inline-block; /* Display as inline block */
     }
 }
 
-@media (max-width: 600px) {
+@media (max-width: 900px) {
     .submission_links {
         width: 100%; /* Adjust the width as needed */
     }

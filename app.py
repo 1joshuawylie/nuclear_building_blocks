@@ -10,12 +10,14 @@ import pandas as pd
 from io import StringIO # For handling new json format in pandas
 import numpy as np
 import os
+import tempfile # For saving as svg
 
 # Import Dash / Plotly Functions
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output, State, callback, no_update
 from dash import ctx # Used for identifying callback_context
 import dash_bootstrap_components as dbc
+# from dash_extensions.snippets import send_data_frame
 import json
 # from dash_breakpoints import WindowBreakpoints
 
@@ -121,7 +123,7 @@ header = html.Div(
         ##### Information in App Header #####
         dbc.Card(
             [
-                html.H1('Welcome to the Interactive Nuclear Chart! hello'),
+                html.H1('Welcome to the Interactive Nuclear Chart!'),
                 html.Hr(),
                 html.H5('If you haven\'t already played our game, check it out here!'),
                 # Add code here...
@@ -141,8 +143,8 @@ chart_options = dbc.Offcanvas(
             [
                 dbc.Label('Please select your desired view:'),
                 dcc.Dropdown(
-                    ['Half Life', 'Binding Energy Per Nucleon', 'Year Discovered'],
-                    'Half Life',
+                    ['Half Life', 'Decay Mode', 'Binding Energy Per Nucleon', 'Year Discovered'],
+                    'Decay Mode',
                     id='chart_type',
                     clearable=False,
                 )
@@ -197,7 +199,17 @@ chart_options = dbc.Offcanvas(
                 ##### Extra Toggle Options #####
                 # Add code here...
             ],
-        )
+        ),
+        dbc.Card(
+            [
+                ##### Export Options #####
+                dbc.Label('Click to export chart as:'),
+                html.Button("svg", id="btn_svg_download"),
+                dcc.Download(id="download-image"),
+                ##### Extra Export Options #####
+                # Add code here...
+            ],
+        ),
     ],
     id='offcanvas',
     is_open=False,
@@ -269,7 +281,7 @@ tips = html.Div(
 #####################################################################
 ########## Dash layout components relating to Level Scheme ##########
 #####################################################################
-levels_and_nucleus_images = html.Div(
+levels = html.Div(
     [
         ##### Level Scheme Plot #####
         dbc.Card(
@@ -280,6 +292,10 @@ levels_and_nucleus_images = html.Div(
                 ),
             ], #color='dark'
         ),
+    ], className='images',
+)
+nucleus_images = html.Div(
+    [
         ##### Load Images of User-Built Nuclei #####
         dcc.Loading(id='loading_level_scheme',
                     type='cube',
@@ -291,6 +307,12 @@ levels_and_nucleus_images = html.Div(
                     )]
         )
     ], className='levels',
+)
+levels_and_nucleus_images = html.Div(
+    [
+        levels,
+        nucleus_images,
+    ], className='levels_and_images',
 )
 
 
@@ -391,9 +413,10 @@ app.layout = html.Div([
 )
 def update_chart_data(n_clicks):
     if n_clicks == None:
-        print('Running call to get ground state data...')
+        # print('Running call to get ground state data...')
         # Call ground state information from IAEA
         ground_state = iaea.NuChartGS()
+        # print(ground_state)
         return ground_state.to_json(orient='split')
     
     return no_update
@@ -447,6 +470,12 @@ def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
         # chart.update_layout(title=dict(text='Nuclear Chart: log(Half Life)'))
         title = html.H5(['Nuclear Chart: log(Half Life)'])
         
+    if chart_type_name == 'Decay Mode':
+        chart_type = ncdt.decay_mode_plot(currentData)
+        chart.add_traces([chart_type])
+        # chart.update_layout(title=dict(text='Nuclear Chart: log(Half Life)'))
+        title = html.H5(['Nuclear Chart: Known Primary Decay Mode'])
+
     elif chart_type_name == 'Binding Energy Per Nucleon':
         chart_type = ncdt.binding_energy_per_nucleon_plot(currentData)
         chart.add_traces([chart_type])
@@ -491,25 +520,57 @@ def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
         ))
     if 2 in toggle_options:
         ncdt.show_user_made_nuclei(chart,currentData)
+        
     return chart, title
 
+##### Download chart image #####
+# Callback to handle SVG download
+@app.callback(
+    Output("download-image", "data"),
+    Input("btn_svg_download", "n_clicks"),
+    Input('nuclear_chart','figure'),
+)
+def download_svg(n_clicks, chart):
+    if n_clicks is None:
+        return None
+
+    # Convert Plotly figure to SVG
+    svg_content = go.Figure(chart).to_image(format="svg", width=1200, height=800)
+
+    # Create a temporary file to store the SVG content
+    _, temp_filepath = tempfile.mkstemp(suffix=".svg")
+
+    try:
+        with open(temp_filepath, "wb") as f:
+            f.write(svg_content)
+
+        # Return the temporary file path for download
+        return dcc.send_file(temp_filepath, "heatmap.svg")
+
+    finally:
+        # Clean up the temporary file after it's been sent for download
+        os.remove(temp_filepath)
+
 ##### More sophisticated hovermode for Nuclear Chart controlled through the following callback #####
+# for the sake of run performance, we've removed hover in place of click action to cut CPU usage
 @callback(
     Output("chart_tooltip", "show"), # Returns 'show' property specifically used in dcc.Tooltip()
     Output("chart_tooltip", "bbox"), # Returns 'bbox' property specifically used in dcc.Tooltip()
     Output("chart_tooltip", "children"), # Returns 'children' property specifically used in dcc.Tooltip()
     Output("chart_tooltip", "direction"), # Returns 'direction' property specifically used in dcc.Tooltip()
-    Input("nuclear_chart", "hoverData"),
+    # Input("nuclear_chart", "hoverData"),
+    Input("nuclear_chart", "clickData"),
     Input('neutron_axis_slider','value'),
     Input('current_data','data'),
 )
-def display_hover(hoverData,neutron_slider,jsonCurrentData):
+# def display_hover(hoverData,neutron_slider,jsonCurrentData):
+def display_hover(clickData,neutron_slider,jsonCurrentData):
     # global currentData
-    if hoverData is None:
+    if clickData is None:
         return False, no_update, no_update, no_update
 
     # demo only shows the first point, but other points may also be available
-    pt = hoverData["points"][0]
+    pt = clickData["points"][0]
     bbox = pt["bbox"]
 
     # print('neutron_slider = ',neutron_slider)
