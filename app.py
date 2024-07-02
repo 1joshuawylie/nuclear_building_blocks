@@ -418,8 +418,8 @@ def update_chart_data(n_clicks):
         ground_state = iaea.NuChartGS()
         # print(ground_state)
         return ground_state.to_json(orient='split')
-    
-    return no_update
+    else:
+        return no_update
 
 ##### Offcanvas options callbacks #####
 @app.callback(
@@ -430,7 +430,8 @@ def update_chart_data(n_clicks):
 def toggle_offcanvas(n1, is_open):
     if n1:
         return not is_open
-    return is_open
+    else:
+        return is_open
 
 ##### Nuclear Chart callbacks #####
 # Selecting a subset of data

@@ -10,3 +10,4 @@ dash-bootstrap-templates
 plotly>=5.13.0
 scikit-learn
 kaleido
+simplejson # Unsure if this is causing error JW 7/02/2024
