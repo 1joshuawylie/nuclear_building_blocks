@@ -36,6 +36,10 @@ import plotly.io as pio
 # Call ground state information from IAEA
 # ground_state = iaea.NuChartGS() # Since it's a universal dataset which is not modified, it's okay to leave here
 
+# For finding warnings
+import warnings
+warnings.filterwarnings('error')
+
 #%%
 # Functions for this file only
 def oxfordComma(_s):
