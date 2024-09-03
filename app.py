@@ -788,6 +788,11 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 
 
+#### TO DO:
+# try using a global variable in iaea_data for the dataframe which is loaded on import in app.py
+# Look into asynchronous workers for gunicorn (gevent will need addition to requirements)
+
+
 # please work...
 
 # Run app...
