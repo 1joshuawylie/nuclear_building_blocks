@@ -13,4 +13,4 @@ ARG TARGETPLATFORM
 COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
-CMD [ "gunicorn", "--worker-class=gthread", "--workers=4", "--threads=1", "--log-level=info", "-b 0.0.0.0:80", "app:server"]
+CMD [ "gunicorn", "--worker-class=gthread", "--workers=9", "--threads=1", "-b 0.0.0.0:80", "app:server"]
