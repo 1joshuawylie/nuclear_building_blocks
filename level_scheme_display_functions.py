@@ -250,7 +250,7 @@ def plot_simplified_level_scheme(groundStateData,levelData,num_clusters=3,max_le
     clusters = sorted(clusters,key=sorted)
     # Iterate through cluster list to plot the boxes for each cluster
     for i in range(len(clusters)):
-        print(clusters[i])
+        # print(clusters[i])
         # The following if statements are to set box height for each cluster considered
         if i == 0 and len(clusters) > 1: # Starting when we have more than one cluster
             minE = yMin
