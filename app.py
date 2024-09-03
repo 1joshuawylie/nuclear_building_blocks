@@ -569,6 +569,8 @@ def download_svg(n_clicks, chart):
     Input("nuclear_chart", "clickData"),
     Input('neutron_axis_slider','value'),
     Input('current_data','data'),
+    # Input("close_tooltip_button", "n_clicks"),  # New input for the close button
+    # prevent_initial_call=True  # Prevent callback from being fired when the app starts
 )
 # def display_hover(hoverData,neutron_slider,jsonCurrentData):
 def display_hover(clickData,neutron_slider,jsonCurrentData):
@@ -620,7 +622,11 @@ def display_hover(clickData,neutron_slider,jsonCurrentData):
                                     html.P([hnd.symbol_elements[symbol]]),
                                     html.P(discovered,) # Display if discovered
                                 ]
-                            )
+                            ),
+                        #     dbc.Col(
+                        #     dbc.Button("Close", id="close_tooltip_button", size="sm", color="danger", className="ml-auto"),
+                        #     width="auto"
+                        # )
                         ]
                     ),
                 ]
@@ -786,4 +792,5 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 # Run app...
 if __name__ == '__main__':
-    app.run(debug=True)
+    # app.run(debug=True)
+    app.run()
