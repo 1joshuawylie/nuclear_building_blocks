@@ -1,5 +1,7 @@
 # Core
 gunicorn
+libevent # Required for gevent workers
+gevent # If using gevent workers in Docker file
 dash>=1.0.0
 
 # Additional
