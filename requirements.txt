@@ -1,6 +1,6 @@
 # Core
 gunicorn # [gevent] # Uses [extra] syntax to get gevent (optional) package
-libevent>=2.1.8 # Required for gevent workers
+# libevent>=2.1.8 # Required for gevent workers
 # gevent # If using gevent workers in Docker file
 dash>=1.0.0
 
