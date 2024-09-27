@@ -40,6 +40,12 @@ import plotly.io as pio
 import warnings
 warnings.filterwarnings('error')
 
+# This was used in debugging with dataframes. Uncomment if you need but be warned that this will print all contents of a dataframe when printed!
+# pd.set_option('display.max_columns', None)
+# pd.set_option('display.max_rows', None)
+
+
+
 #%%
 # Functions for this file only
 def oxfordComma(_s):
@@ -687,7 +693,7 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
     dumpClick = json.loads(json.dumps(chartClickData)) # json info from clicking nuclear chart
     dumpHover = json.loads(json.dumps(levelClickData)) # json info from hovering over level scheme levels or group
     triggerID = ctx.triggered_id # Determine the type of id that was triggered (hover, click, or None)
-
+    
     imagePath = 'assets/'
     # Default don't show a level scheme
     if triggerID == 'current_data':
@@ -730,6 +736,9 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
         
         # Get level data and plot levels
         isotopeLevels = iaea.NuChartLevels(A,symbol)
+
+        # Filter out levels that are NaN
+        isotopeLevels = isotopeLevels.dropna(subset=['jp'])
     else:
         isotopeLevels = pd.read_json(StringIO(jsonIsotopeLevels),orient='split')
     
@@ -803,5 +812,5 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 # Run app...
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run()
+    app.run(debug=True)
+    # app.run()
