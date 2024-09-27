@@ -104,11 +104,6 @@ plotly_template.layout = {
     'paper_bgcolor': '#292b2c',  # Set the background color to match CYBORG theme
     'plot_bgcolor': '#292b2c',  # Set the background color to match CYBORG theme
 }
-# write to file for easy viewing
-# with open('layout_plotly_template.txt', 'w') as file:
-#     for item in plotly_template.layout:
-#         file.write(item+': ')
-#         file.write(str(plotly_template.layout[item])+'\n')
 
 app = Dash(__name__,external_stylesheets=[theme])
 server = app.server
@@ -223,7 +218,24 @@ chart_options = dbc.Offcanvas(
 chart_plot = dbc.Card(
     [
         ##### Nuclear Chart #####title = 'Nuclear Chart: log(Half Life)'
-        dbc.CardHeader(id='nuclear_chart_title'),
+        # dbc.CardHeader(id='nuclear_chart_title'),
+        dbc.CardHeader(
+            dbc.Row(
+                [
+                    dbc.Col(id='nuclear_chart_title'),
+                    # dbc.Col(id='close_tooltip_button', width="auto"),
+                    dbc.Col(
+                        dbc.Button(
+                            "Close Shown Card", size="sm", color="danger",
+                            className="me-md-2", id='close_tooltip_button', n_clicks=0,
+                            style={'display':'none'}
+                        ),
+                        width="auto",
+                        className="d-flex justify-content-end"
+                    )
+                ]
+            )
+        ),
         dcc.Graph(
             id='nuclear_chart',
             clear_on_unhover=True,
@@ -417,11 +429,10 @@ app.layout = html.Div([
 )
 def update_chart_data(n_clicks):
     if n_clicks == None:
-        # print('Running call to get ground state data...')
         # Call ground state information from IAEA
         # ground_state = iaea.NuChartGS()
         ground_state = iaea.ground_state
-        # print(ground_state)
+
         return ground_state.to_json(orient='split')
     else:
         return no_update
@@ -457,11 +468,13 @@ def update_chart_data(neutron_slider,proton_slider,jsonGroundState):
 @callback(
     Output('nuclear_chart','figure'),
     Output('nuclear_chart_title','children'),
+    Output('close_tooltip_button','style'),
     Input('chart_type','value'),
     Input('current_data','data'),
-    Input('chart_toggle_options','value')
+    Input('chart_toggle_options','value'),
+    Input("nuclear_chart", "clickData"),
 )
-def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
+def update_chart_type(chart_type_name,jsonCurrentData,toggle_options,nuclearChartClickData):
     currentData = pd.read_json(StringIO(jsonCurrentData),orient='split')
     # Additional axes offsets to show magic number tiles later
     xoffset, yoffset = 2, 2.5
@@ -493,6 +506,11 @@ def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
         chart.add_traces([chart_type])
         # chart.update_layout(title=dict(text='Nuclear Chart: Year Discovered'))
         title = html.H5(['Nuclear Chart: Year Discovered'])
+
+    if nuclearChartClickData is not None:
+        button = dict(display='inline')
+    else:
+        button = dict(display='none')
 
     # Draw magic numbers
     ncdt.drawMagicNumbers(chart,xrange,yrange,xoffset, yoffset)
@@ -527,7 +545,7 @@ def update_chart_type(chart_type_name,jsonCurrentData,toggle_options):
     if 2 in toggle_options:
         ncdt.show_user_made_nuclei(chart,currentData)
         
-    return chart, title
+    return chart, title, button
 
 ##### Download chart image #####
 # Callback to handle SVG download
@@ -570,11 +588,11 @@ def download_svg(n_clicks, chart):
     Input("nuclear_chart", "clickData"),
     Input('neutron_axis_slider','value'),
     Input('current_data','data'),
-    # Input("close_tooltip_button", "n_clicks"),  # New input for the close button
+    Input("close_tooltip_button", "n_clicks"),  # New input for the close button
     # prevent_initial_call=True  # Prevent callback from being fired when the app starts
 )
 # def display_hover(hoverData,neutron_slider,jsonCurrentData):
-def display_hover(clickData,neutron_slider,jsonCurrentData):
+def display_hover(clickData,neutron_slider,jsonCurrentData, n_clicks):
     # global currentData
     if clickData is None:
         return False, no_update, no_update, no_update
@@ -583,11 +601,6 @@ def display_hover(clickData,neutron_slider,jsonCurrentData):
     pt = clickData["points"][0]
     bbox = pt["bbox"]
 
-    # print('neutron_slider = ',neutron_slider)
-    # print('hoverData = ',hoverData)
-    # print('pt = \n',pt)
-    # print('bbox = \n',bbox)
-
     # Get data for current hover item
     currentData = pd.read_json(StringIO(jsonCurrentData),orient='split')
     df_row = currentData[(currentData['n']==pt['x'])&(currentData['z']==pt['y'])]
@@ -595,7 +608,11 @@ def display_hover(clickData,neutron_slider,jsonCurrentData):
     if df_row.empty:
         return False, no_update, no_update, no_update
     
-    # print('df_row = ',df_row)
+    # Check if n_clicks is None
+    if ctx.triggered_id == 'close_tooltip_button': # Determine the type of id that was triggered (hover, click, or None):
+        # Button to close displayed clickData card will hide existing card data
+        if n_clicks > 0:
+            return False, no_update, no_update, no_update
 
     img_src = hnd.decayImgSrc[str(df_row['common_decays'].values[0])] # Get decay image location
     A =  int(df_row['n'].values[0])+int(df_row['z'].values[0]) # Get A value
@@ -624,10 +641,6 @@ def display_hover(clickData,neutron_slider,jsonCurrentData):
                                     html.P(discovered,) # Display if discovered
                                 ]
                             ),
-                        #     dbc.Col(
-                        #     dbc.Button("Close", id="close_tooltip_button", size="sm", color="danger", className="ml-auto"),
-                        #     width="auto"
-                        # )
                         ]
                     ),
                 ]
@@ -643,7 +656,6 @@ def display_hover(clickData,neutron_slider,jsonCurrentData):
 
     # # To avoid being cutoff by the edge of the chart, move the direction the hover box appears
     direction = 'right'
-    # midPt = min(neutron_slider) + (max(neutron_slider) - min(neutron_slider)) / 2
     midPt = neutron_slider / 2
     if pt['x'] > midPt:
         direction = 'left'
@@ -675,12 +687,6 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
     dumpClick = json.loads(json.dumps(chartClickData)) # json info from clicking nuclear chart
     dumpHover = json.loads(json.dumps(levelClickData)) # json info from hovering over level scheme levels or group
     triggerID = ctx.triggered_id # Determine the type of id that was triggered (hover, click, or None)
-
-    # print('triggerID = ',triggerID)
-    # print('dumpClick = \n',dumpClick)
-    # print('dumpHover = \n',dumpHover)
-    # print('jsonIsotopeLevels = \n',jsonIsotopeLevels)
-    # print('jsonCurrentData = \n',jsonCurrentData)
 
     imagePath = 'assets/'
     # Default don't show a level scheme
@@ -790,7 +796,6 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 
 #### TO DO:
-# try using a global variable in iaea_data for the dataframe which is loaded on import in app.py
 # Look into asynchronous workers for gunicorn (gevent will need addition to requirements)
 
 
@@ -798,5 +803,5 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 # Run app...
 if __name__ == '__main__':
-    app.run(debug=True)
-    # app.run()
+    # app.run(debug=True)
+    app.run()
