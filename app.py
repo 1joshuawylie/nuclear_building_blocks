@@ -419,7 +419,8 @@ def update_chart_data(n_clicks):
     if n_clicks == None:
         # print('Running call to get ground state data...')
         # Call ground state information from IAEA
-        ground_state = iaea.NuChartGS()
+        # ground_state = iaea.NuChartGS()
+        ground_state = iaea.ground_state
         # print(ground_state)
         return ground_state.to_json(orient='split')
     else:
@@ -797,5 +798,5 @@ def update_level_scheme(chartClickData, levelClickData, jsonIsotopeLevels,jsonCu
 
 # Run app...
 if __name__ == '__main__':
-    # app.run(debug=True)
-    app.run()
+    app.run(debug=True)
+    # app.run()
