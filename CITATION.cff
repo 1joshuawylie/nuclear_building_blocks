@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use wish to use this software and/or guide, please cite it as below."
+authors:
+- family-names: "Wylie"
+  given-names: "Joshua"
+  orcid: "https://orcid.org/0000-0002-0963-6190"
+- family-names: "Godbey"
+  given-names: "Kyle"
+  orcid: "https://orcid.org/0000-0003-0622-3646"
+title: "Nuclear Beavers"
+version: 1.0.0
+date-released: 2024-12-18
+url: "https://github.com/1joshuawylie/nuclear_building_blocks"
