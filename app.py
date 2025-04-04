@@ -37,8 +37,8 @@ import plotly.io as pio
 # ground_state = iaea.NuChartGS() # Since it's a universal dataset which is not modified, it's okay to leave here
 
 # For finding warnings
-import warnings
-warnings.filterwarnings('error')
+# import warnings
+# warnings.filterwarnings('error')
 
 # This was used in debugging with dataframes. Uncomment if you need but be warned that this will print all contents of a dataframe when printed!
 # pd.set_option('display.max_columns', None)
